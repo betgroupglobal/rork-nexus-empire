@@ -5,6 +5,7 @@ struct CommsView: View {
     @State private var selectedTab: CommType? = nil
     @State private var searchText: String = ""
     @State private var selectedComm: Communication?
+    @State private var showCompose: Bool = false
 
     var body: some View {
         List {
@@ -31,8 +32,22 @@ struct CommsView: View {
                 ContentUnavailableView("No Messages", systemImage: "antenna.radiowaves.left.and.right", description: Text("No communications match your filters"))
             }
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if store.ctConnectionStatus == .connected {
+                    Button {
+                        showCompose = true
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                    }
+                }
+            }
+        }
         .sheet(item: $selectedComm) { comm in
             CommDetailSheet(comm: comm)
+        }
+        .sheet(isPresented: $showCompose) {
+            SMSComposeView(store: store)
         }
     }
 

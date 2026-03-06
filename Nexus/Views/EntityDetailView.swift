@@ -24,6 +24,7 @@ struct EntityDetailView: View {
     @State private var selectedComm: Communication?
     @State private var selectedEmail: EmailMessage?
     @State private var showEditEntity: Bool = false
+    @State private var showSMSCompose: Bool = false
 
     private var liveEntity: NexusEntity {
         store.entities.first(where: { $0.id == entity.id }) ?? entity
@@ -104,6 +105,14 @@ struct EntityDetailView: View {
         }
         .sheet(isPresented: $showEditEntity) {
             EditEntitySheet(store: store, entity: liveEntity)
+        }
+        .sheet(isPresented: $showSMSCompose) {
+            SMSComposeView(
+                store: store,
+                prefillTo: liveEntity.assignedPhone,
+                entityId: liveEntity.id,
+                entityName: liveEntity.name
+            )
         }
         .onAppear {
             withAnimation(.spring(response: 0.5)) { appeared = true }

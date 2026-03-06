@@ -110,6 +110,20 @@ nonisolated struct CTOwner: Codable, Sendable, Identifiable {
     }
 }
 
+nonisolated struct CTSMSSendRequest: Codable, Sendable {
+    let from_number: String
+    let to_number: String
+    let message: String
+}
+
+nonisolated struct CTSMSSendResponse: Codable, Sendable {
+    let status: String?
+    let message_id: String?
+    let message: String?
+    let direction: String?
+    let price: Double?
+}
+
 nonisolated enum CTConnectionStatus: String, Sendable {
     case disconnected
     case connecting

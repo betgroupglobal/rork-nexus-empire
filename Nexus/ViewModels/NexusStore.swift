@@ -16,6 +16,9 @@ class NexusStore {
     var ctConnectionStatus: CTConnectionStatus = .disconnected
     var ctError: String?
     var ctIsLoading: Bool = false
+    var smsSending: Bool = false
+    var smsError: String?
+    var smsSuccess: Bool = false
 
     var emailAccounts: [EmailAccount] = []
 
@@ -299,6 +302,39 @@ class NexusStore {
     func refreshCrazyTel() async {
         guard crazytelEnabled else { return }
         await connectCrazyTel()
+    }
+
+    func sendSMS(from: String, to: String, message: String, entityId: UUID? = nil, entityName: String? = nil) async {
+        guard !crazytelAPIKey.isEmpty else {
+            smsError = "CrazyTel API key not configured"
+            return
+        }
+        smsSending = true
+        smsError = nil
+        smsSuccess = false
+        do {
+            let response = try await ctService.sendSMS(apiKey: crazytelAPIKey, from: from, to: to, message: message)
+            if let status = response.status, status.lowercased().contains("error") {
+                smsError = response.message ?? "Failed to send SMS"
+            } else {
+                smsSuccess = true
+                let comm = Communication(
+                    id: UUID(),
+                    entityId: entityId ?? UUID(),
+                    entityName: entityName ?? "Unknown",
+                    type: .sms,
+                    sender: "You",
+                    content: message,
+                    timestamp: Date(),
+                    isRead: true,
+                    phoneNumber: to
+                )
+                communications.insert(comm, at: 0)
+            }
+        } catch {
+            smsError = error.localizedDescription
+        }
+        smsSending = false
     }
 
     func addEmailAccount(_ account: EmailAccount) {

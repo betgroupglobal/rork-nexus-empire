@@ -87,4 +87,9 @@ class CrazyTelService {
         let _: CTBalanceResponse = try await request(path: "/balance/", apiKey: apiKey)
         return true
     }
+
+    func sendSMS(apiKey: String, from: String, to: String, message: String) async throws -> CTSMSSendResponse {
+        let body = CTSMSSendRequest(from_number: from, to_number: to, message: message)
+        return try await request(method: "POST", path: "/sms/send", apiKey: apiKey, body: body)
+    }
 }
