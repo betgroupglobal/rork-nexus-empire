@@ -26,7 +26,7 @@ struct CommsView: View {
         }
         .listStyle(.plain)
         .searchable(text: $searchText, prompt: "Search messages...")
-        .navigationTitle("Comms Citadel")
+        .navigationTitle("Comms")
         .overlay {
             if filteredComms.isEmpty {
                 ContentUnavailableView("No Messages", systemImage: "antenna.radiowaves.left.and.right", description: Text("No communications match your filters"))
@@ -92,8 +92,7 @@ struct CommsView: View {
         if !searchText.isEmpty {
             result = result.filter {
                 $0.content.localizedStandardContains(searchText) ||
-                $0.sender.localizedStandardContains(searchText) ||
-                $0.entityName.localizedStandardContains(searchText)
+                $0.sender.localizedStandardContains(searchText)
             }
         }
 
@@ -129,10 +128,6 @@ struct CommDetailSheet: View {
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Label(comm.entityName, systemImage: "building.2")
-                            .font(.subheadline)
-                            .foregroundStyle(.blue)
-
                         Label(comm.phoneNumber, systemImage: "phone")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)

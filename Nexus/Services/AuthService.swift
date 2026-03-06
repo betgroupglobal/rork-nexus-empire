@@ -83,7 +83,11 @@ class AuthService {
 
         let (data, response) = try await session.data(for: request)
         if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
-            let body = String(data: data, encoding: .utf8) ?? ""
+            if let trpcError = try? decoder.decode(TRPCErrorResponse.self, from: data),
+               let message = trpcError.error.message ?? trpcError.error.data?.message {
+                throw APIError.serverError(http.statusCode, message)
+            }
+            let body = String(data: data, encoding: .utf8) ?? "Unknown error"
             throw APIError.serverError(http.statusCode, body)
         }
         let trpc = try decoder.decode(TRPCResponse<T>.self, from: data)

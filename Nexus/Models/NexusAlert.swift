@@ -28,8 +28,6 @@ nonisolated enum AlertPriority: String, Codable, Sendable {
 
 struct NexusAlert: Identifiable, Hashable, Sendable, Codable {
     let id: UUID
-    let entityId: UUID?
-    let entityName: String?
     var type: AlertType
     var priority: AlertPriority
     var title: String

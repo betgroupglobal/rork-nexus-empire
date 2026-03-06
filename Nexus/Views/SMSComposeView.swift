@@ -4,8 +4,6 @@ struct SMSComposeView: View {
     let store: NexusStore
     var prefillTo: String = ""
     var prefillFrom: String = ""
-    var entityId: UUID?
-    var entityName: String?
 
     @Environment(\.dismiss) private var dismiss
     @State private var toNumber: String = ""
@@ -134,20 +132,6 @@ struct SMSComposeView: View {
             .padding(14)
             .background(Color(.secondarySystemGroupedBackground))
             .clipShape(.rect(cornerRadius: 12))
-
-            if let name = entityName {
-                HStack(spacing: 6) {
-                    Image(systemName: "building.2")
-                        .font(.caption2)
-                    Text(name)
-                        .font(.caption)
-                }
-                .foregroundStyle(.blue)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(.blue.opacity(0.08))
-                .clipShape(Capsule())
-            }
         }
     }
 
@@ -200,9 +184,7 @@ struct SMSComposeView: View {
                         await store.sendSMS(
                             from: selectedFromDID,
                             to: normalizedTo,
-                            message: messageText,
-                            entityId: entityId,
-                            entityName: entityName
+                            message: messageText
                         )
                     }
                 } label: {

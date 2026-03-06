@@ -56,15 +56,6 @@ struct EmailRowView: View {
                     .lineLimit(2)
 
                 HStack(spacing: 6) {
-                    Text(email.entityName)
-                        .font(.caption2)
-                        .fontWeight(.medium)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(.blue.opacity(0.1))
-                        .foregroundStyle(.blue)
-                        .clipShape(Capsule())
-
                     Text(email.category.rawValue)
                         .font(.caption2)
                         .padding(.horizontal, 8)

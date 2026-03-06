@@ -3,7 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var authVM = AuthViewModel()
     @State private var store = NexusStore()
-    @State private var selectedTab: AppTab = .identities
+    @State private var selectedTab: AppTab = .dashboard
     @AppStorage("appearance") private var appearance: String = "system"
 
     var body: some View {
@@ -20,9 +20,9 @@ struct ContentView: View {
 
     private var mainTabView: some View {
         TabView(selection: $selectedTab) {
-            Tab("Identities", systemImage: "rectangle.grid.2x2", value: .identities) {
+            Tab("Dashboard", systemImage: "chart.bar.xaxis", value: .dashboard) {
                 NavigationStack {
-                    IdentityGridView(store: store)
+                    DashboardView(store: store)
                 }
             }
 
@@ -58,7 +58,7 @@ struct ContentView: View {
 }
 
 nonisolated enum AppTab: String, Hashable, Sendable {
-    case identities
+    case dashboard
     case inbox
     case alerts
     case settings

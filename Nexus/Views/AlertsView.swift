@@ -21,14 +21,12 @@ struct AlertsView: View {
             }
         }
         .listStyle(.plain)
-        .navigationTitle("Alert Brain")
+        .navigationTitle("Alerts")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button("Mark All Read") {
-                        for alert in store.alerts where !alert.isRead {
-                            store.markAlertRead(alert)
-                        }
+                        store.markAllAlertsRead()
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")

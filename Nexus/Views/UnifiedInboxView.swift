@@ -117,13 +117,13 @@ struct UnifiedInboxView: View {
                     }
                 }()
                 guard matchesType else { continue }
-                items.append(InboxItem(id: comm.id, timestamp: comm.timestamp, entityName: comm.entityName, isRead: comm.isRead, kind: .comm(comm)))
+                items.append(InboxItem(id: comm.id, timestamp: comm.timestamp, isRead: comm.isRead, kind: .comm(comm)))
             }
         }
 
         if filter == .all || filter == .email {
             for email in store.emails {
-                items.append(InboxItem(id: email.id, timestamp: email.timestamp, entityName: email.entityName, isRead: email.isRead, kind: .email(email)))
+                items.append(InboxItem(id: email.id, timestamp: email.timestamp, isRead: email.isRead, kind: .email(email)))
             }
         }
 
@@ -132,12 +132,10 @@ struct UnifiedInboxView: View {
                 switch item.kind {
                 case .comm(let c):
                     return c.content.localizedStandardContains(searchText) ||
-                           c.sender.localizedStandardContains(searchText) ||
-                           c.entityName.localizedStandardContains(searchText)
+                           c.sender.localizedStandardContains(searchText)
                 case .email(let e):
                     return e.subject.localizedStandardContains(searchText) ||
-                           e.sender.localizedStandardContains(searchText) ||
-                           e.entityName.localizedStandardContains(searchText)
+                           e.sender.localizedStandardContains(searchText)
                 }
             }
         }
@@ -149,7 +147,6 @@ struct UnifiedInboxView: View {
 struct InboxItem: Identifiable {
     let id: UUID
     let timestamp: Date
-    let entityName: String
     let isRead: Bool
     let kind: InboxItemKind
 }
@@ -189,11 +186,6 @@ struct InboxItemRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
-
-                Text(item.entityName)
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.blue)
             }
 
             if !item.isRead {

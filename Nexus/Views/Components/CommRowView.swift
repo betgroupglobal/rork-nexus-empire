@@ -34,21 +34,10 @@ struct CommRowView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
 
-                HStack(spacing: 6) {
-                    Text(comm.entityName)
+                if let duration = comm.duration {
+                    Text(formattedDuration(duration))
                         .font(.caption2)
-                        .fontWeight(.medium)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(.blue.opacity(0.1))
-                        .foregroundStyle(.blue)
-                        .clipShape(Capsule())
-
-                    if let duration = comm.duration {
-                        Text(formattedDuration(duration))
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                    }
+                        .foregroundStyle(.tertiary)
                 }
             }
 

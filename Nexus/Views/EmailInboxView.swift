@@ -41,7 +41,7 @@ struct EmailInboxView: View {
         }
         .listStyle(.plain)
         .searchable(text: $searchText, prompt: "Search emails...")
-        .navigationTitle("Empire Inbox")
+        .navigationTitle("Email Inbox")
         .overlay {
             if filteredEmails.isEmpty {
                 ContentUnavailableView("No Emails", systemImage: "envelope.open", description: Text("No emails match your filters"))
@@ -147,7 +147,6 @@ struct EmailInboxView: View {
             result = result.filter {
                 $0.subject.localizedStandardContains(searchText) ||
                 $0.sender.localizedStandardContains(searchText) ||
-                $0.entityName.localizedStandardContains(searchText) ||
                 $0.snippet.localizedStandardContains(searchText)
             }
         }
@@ -183,14 +182,6 @@ struct EmailDetailSheet: View {
                         }
 
                         HStack(spacing: 8) {
-                            Label(email.entityName, systemImage: "building.2")
-                                .font(.caption)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(.blue.opacity(0.1))
-                                .foregroundStyle(.blue)
-                                .clipShape(Capsule())
-
                             Text(email.category.rawValue)
                                 .font(.caption)
                                 .padding(.horizontal, 8)

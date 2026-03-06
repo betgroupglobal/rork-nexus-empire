@@ -20,8 +20,6 @@ nonisolated enum EmailCategory: String, Codable, CaseIterable, Identifiable, Sen
 
 struct EmailMessage: Identifiable, Hashable, Sendable, Codable {
     let id: UUID
-    let entityId: UUID
-    let entityName: String
     var sender: String
     var senderAddress: String
     var subject: String

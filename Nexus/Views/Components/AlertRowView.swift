@@ -42,26 +42,14 @@ struct AlertRowView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
 
-                HStack(spacing: 6) {
-                    Text(alert.priority.rawValue)
-                        .font(.caption2)
-                        .fontWeight(.semibold)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(priorityColor.opacity(0.12))
-                        .foregroundStyle(priorityColor)
-                        .clipShape(Capsule())
-
-                    if let entityName = alert.entityName {
-                        Text(entityName)
-                            .font(.caption2)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(.blue.opacity(0.1))
-                            .foregroundStyle(.blue)
-                            .clipShape(Capsule())
-                    }
-                }
+                Text(alert.priority.rawValue)
+                    .font(.caption2)
+                    .fontWeight(.semibold)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(priorityColor.opacity(0.12))
+                    .foregroundStyle(priorityColor)
+                    .clipShape(Capsule())
             }
 
             if !alert.isRead {

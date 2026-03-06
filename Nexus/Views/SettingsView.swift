@@ -3,7 +3,6 @@ import SwiftUI
 struct SettingsView: View {
     let store: NexusStore
     @Bindable var authVM: AuthViewModel
-    @State private var showAddEntity: Bool = false
     @State private var showLogoutConfirm: Bool = false
     @AppStorage("appearance") private var appearance: String = "system"
 
@@ -70,35 +69,12 @@ struct SettingsView: View {
                 }
             }
 
-            Section("Identities") {
-                Button {
-                    showAddEntity = true
-                } label: {
-                    Label("Add New Identity", systemImage: "plus.circle")
-                }
-
-                NavigationLink {
-                    ArchivedEntitiesView(store: store)
-                } label: {
-                    Label("Archived Identities", systemImage: "archivebox")
-                }
-
-                LabeledContent("Active", value: "\(store.activeEntityCount)")
-                LabeledContent("Total", value: "\(store.entities.count)")
-            }
-
             Section("Appearance") {
                 Picker("Theme", selection: $appearance) {
                     Text("System").tag("system")
                     Text("Light").tag("light")
                     Text("Dark").tag("dark")
                 }
-            }
-
-            Section("Alert Thresholds") {
-                LabeledContent("Utilisation", value: "25%")
-                LabeledContent("Dormancy", value: "30 days")
-                LabeledContent("ClearScore", value: "< 650")
             }
 
             if let user = authVM.currentUser {
@@ -130,18 +106,6 @@ struct SettingsView: View {
                 }
             }
 
-            Section("Data") {
-                Button {
-                } label: {
-                    Label("Export Report", systemImage: "square.and.arrow.up")
-                }
-
-                Button(role: .destructive) {
-                } label: {
-                    Label("Reset All Data", systemImage: "trash")
-                }
-            }
-
             Section {
                 Button(role: .destructive) {
                     showLogoutConfirm = true
@@ -162,9 +126,6 @@ struct SettingsView: View {
             }
         } message: {
             Text("Are you sure you want to sign out?")
-        }
-        .sheet(isPresented: $showAddEntity) {
-            AddEntitySheet(store: store)
         }
     }
 
@@ -320,7 +281,7 @@ struct CrazyTelSettingsView: View {
             await store.refreshCrazyTel()
         }
         .sheet(item: $showDIDDetail) { did in
-            DIDDetailSheet(did: did, store: store)
+            DIDDetailSheet(did: did)
         }
     }
 
@@ -424,16 +385,6 @@ struct CrazyTelSettingsView: View {
                                 }
                             }
                             Spacer()
-                            if let entity = matchedEntity(for: did) {
-                                Text(entity.name)
-                                    .font(.caption2)
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(.blue)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 3)
-                                    .background(.blue.opacity(0.1))
-                                    .clipShape(Capsule())
-                            }
                             Image(systemName: "chevron.right")
                                 .font(.caption)
                                 .foregroundStyle(.tertiary)
@@ -464,7 +415,7 @@ struct CrazyTelSettingsView: View {
         } header: {
             Text("Routing")
         } footer: {
-            Text("All inbound SMS, calls, and voicemails are routed through the CrazyTel API into your unified inbox. Each is auto-tagged to the matching entity.")
+            Text("All inbound SMS, calls, and voicemails are routed through the CrazyTel API into your unified inbox.")
         }
     }
 
@@ -485,19 +436,10 @@ struct CrazyTelSettingsView: View {
         case .disconnected: "Disconnected"
         }
     }
-
-    private func matchedEntity(for did: CTDIDNumber) -> NexusEntity? {
-        store.entities.first { entity in
-            let cleaned = entity.assignedPhone.replacingOccurrences(of: "[^0-9]", with: "", options: .regularExpression)
-            let didCleaned = did.did_number.replacingOccurrences(of: "[^0-9]", with: "", options: .regularExpression)
-            return !cleaned.isEmpty && !didCleaned.isEmpty && (cleaned.hasSuffix(didCleaned.suffix(8)) || didCleaned.hasSuffix(cleaned.suffix(8)))
-        }
-    }
 }
 
 struct DIDDetailSheet: View {
     let did: CTDIDNumber
-    let store: NexusStore
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -527,36 +469,6 @@ struct DIDDetailSheet: View {
                             .font(.subheadline)
                     }
                 }
-
-                if let entity = matchedEntity {
-                    Section("Linked Identity") {
-                        HStack(spacing: 12) {
-                            ZStack {
-                                Circle()
-                                    .fill(.blue.opacity(0.1))
-                                    .frame(width: 36, height: 36)
-                                Image(systemName: entity.type.icon)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.blue)
-                            }
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(entity.name)
-                                    .font(.subheadline.weight(.medium))
-                                Text(entity.type.rawValue)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                } else {
-                    Section {
-                        Label("Not linked to any identity", systemImage: "link.badge.plus")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    } footer: {
-                        Text("Assign this number to an identity to auto-tag incoming communications.")
-                    }
-                }
             }
             .navigationTitle("DID Details")
             .navigationBarTitleDisplayMode(.inline)
@@ -568,14 +480,6 @@ struct DIDDetailSheet: View {
         }
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
-    }
-
-    private var matchedEntity: NexusEntity? {
-        store.entities.first { entity in
-            let cleaned = entity.assignedPhone.replacingOccurrences(of: "[^0-9]", with: "", options: .regularExpression)
-            let didCleaned = did.did_number.replacingOccurrences(of: "[^0-9]", with: "", options: .regularExpression)
-            return !cleaned.isEmpty && !didCleaned.isEmpty && (cleaned.hasSuffix(didCleaned.suffix(8)) || didCleaned.hasSuffix(cleaned.suffix(8)))
-        }
     }
 }
 
@@ -590,7 +494,7 @@ struct EmailIntegrationView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Label("Email Accounts", systemImage: "envelope.badge.fill")
                         .font(.headline)
-                    Text("Sign in to email accounts and link them to identities. Each identity gets its own dedicated email inbox.")
+                    Text("Sign in to email accounts to receive emails in your unified inbox.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -646,31 +550,6 @@ struct EmailIntegrationView: View {
             }
 
             if !store.emailAccounts.isEmpty {
-                Section("Account Links") {
-                    ForEach(store.emailAccounts) { account in
-                        HStack(spacing: 10) {
-                            Image(systemName: account.provider.icon)
-                                .font(.caption)
-                                .foregroundStyle(account.provider.color)
-                                .frame(width: 20)
-                            Text(account.emailAddress)
-                                .font(.caption)
-                                .lineLimit(1)
-                            Spacer()
-                            if let entity = store.entityForEmailAccount(account.id) {
-                                Text(entity.name)
-                                    .font(.caption2)
-                                    .foregroundStyle(.blue)
-                                    .lineLimit(1)
-                            } else {
-                                Text("Unlinked")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                            }
-                        }
-                    }
-                }
-
                 Section {
                     LabeledContent("Signed In", value: "\(store.loggedInAccountCount)")
                     LabeledContent("Unread Emails", value: "\(store.unreadEmailCount)")
@@ -718,18 +597,6 @@ struct EmailAccountRow: View {
 
             Spacer()
 
-            if let entity = store.entityForEmailAccount(account.id) {
-                Text(entity.name)
-                    .font(.caption2)
-                    .fontWeight(.medium)
-                    .foregroundStyle(.blue)
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(.blue.opacity(0.1))
-                    .clipShape(Capsule())
-                    .lineLimit(1)
-            }
-
             let unread = store.unreadCountForAccount(account.id)
             if unread > 0 {
                 Text("\(unread)")
@@ -769,7 +636,6 @@ struct EmailAccountDetailSheet: View {
     @State private var isLoggingIn: Bool = false
     @State private var showPassword: Bool = false
     @State private var showRemoveConfirm: Bool = false
-    @State private var selectedEntityId: UUID?
 
     var body: some View {
         NavigationStack {
@@ -799,28 +665,6 @@ struct EmailAccountDetailSheet: View {
                         }
                     }
                     .padding(.vertical, 4)
-                }
-
-                Section("Linked Identity") {
-                    Picker("Identity", selection: $selectedEntityId) {
-                        Text("None").tag(UUID?.none)
-                        ForEach(store.entities.filter { $0.status != .archived }) { entity in
-                            HStack {
-                                Image(systemName: entity.type.icon)
-                                Text(entity.name)
-                            }
-                            .tag(Optional(entity.id))
-                        }
-                    }
-                    .onChange(of: selectedEntityId) { _, newValue in
-                        if let entityId = newValue {
-                            store.linkEmailAccount(account.id, toEntity: entityId)
-                        } else {
-                            if let current = store.entityForEmailAccount(account.id) {
-                                store.unlinkEmailAccount(fromEntity: current.id)
-                            }
-                        }
-                    }
                 }
 
                 Section {
@@ -955,9 +799,6 @@ struct EmailAccountDetailSheet: View {
             } message: {
                 Text("This will remove \(account.emailAddress) and delete saved credentials.")
             }
-            .onAppear {
-                selectedEntityId = store.entityForEmailAccount(account.id)?.id
-            }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
@@ -988,7 +829,6 @@ struct AddEmailAccountSheet: View {
     @State private var showPassword: Bool = false
     @State private var isLoggingIn: Bool = false
     @State private var currentStep: Int = 0
-    @State private var selectedEntityId: UUID?
 
     var body: some View {
         NavigationStack {
@@ -1110,19 +950,6 @@ struct AddEmailAccountSheet: View {
                 }
             }
 
-            Section("Link to Identity") {
-                Picker("Identity", selection: $selectedEntityId) {
-                    Text("Link later").tag(UUID?.none)
-                    ForEach(store.entities.filter { $0.status != .archived && $0.emailAccountId == nil }) { entity in
-                        HStack {
-                            Image(systemName: entity.type.icon)
-                            Text(entity.name)
-                        }
-                        .tag(Optional(entity.id))
-                    }
-                }
-            }
-
             if selectedProvider == .imap {
                 Section("Server Settings") {
                     TextField("IMAP Host", text: $imapHost)
@@ -1164,125 +991,10 @@ struct AddEmailAccountSheet: View {
         )
         store.addAndLoginEmailAccount(account, password: password.trimmingCharacters(in: .whitespacesAndNewlines))
 
-        if let entityId = selectedEntityId {
-            store.linkEmailAccount(account.id, toEntity: entityId)
-        }
-
         Task {
             try? await Task.sleep(for: .seconds(1.5))
             isLoggingIn = false
             dismiss()
-        }
-    }
-}
-
-struct ArchivedEntitiesView: View {
-    let store: NexusStore
-
-    private var archivedEntities: [NexusEntity] {
-        store.entities.filter { $0.status == .archived }
-    }
-
-    var body: some View {
-        List {
-            ForEach(archivedEntities) { entity in
-                EntityRowView(entity: entity)
-            }
-        }
-        .navigationTitle("Archived")
-        .overlay {
-            if archivedEntities.isEmpty {
-                ContentUnavailableView("No Archived Identities", systemImage: "archivebox", description: Text("Archived identities will appear here"))
-            }
-        }
-    }
-}
-
-struct AddEntitySheet: View {
-    let store: NexusStore
-    @Environment(\.dismiss) private var dismiss
-    @State private var name: String = ""
-    @State private var type: EntityType = .ltd
-    @State private var creditLimit: String = ""
-    @State private var phone: String = ""
-    @State private var email: String = ""
-    @State private var notes: String = ""
-    @State private var selectedEmailAccountId: UUID?
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section("Details") {
-                    TextField("Identity Name", text: $name)
-                    Picker("Type", selection: $type) {
-                        ForEach(EntityType.allCases) { t in
-                            Label(t.rawValue, systemImage: t.icon).tag(t)
-                        }
-                    }
-                    TextField("Credit Limit (AUD)", text: $creditLimit)
-                        .keyboardType(.decimalPad)
-                }
-
-                Section("Contact") {
-                    TextField("Phone Number", text: $phone)
-                        .keyboardType(.phonePad)
-                    TextField("Email Alias", text: $email)
-                        .keyboardType(.emailAddress)
-                        .textInputAutocapitalization(.never)
-                }
-
-                if !store.emailAccounts.isEmpty {
-                    Section("Link Email Account") {
-                        Picker("Account", selection: $selectedEmailAccountId) {
-                            Text("None").tag(UUID?.none)
-                            ForEach(store.emailAccounts.filter { store.entityForEmailAccount($0.id) == nil }) { account in
-                                HStack {
-                                    Image(systemName: account.provider.icon)
-                                    Text(account.emailAddress)
-                                }
-                                .tag(Optional(account.id))
-                            }
-                        }
-                    }
-                }
-
-                Section("Notes") {
-                    TextField("Notes", text: $notes, axis: .vertical)
-                        .lineLimit(3...6)
-                }
-            }
-            .navigationTitle("New Identity")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        let entity = NexusEntity(
-                            id: UUID(),
-                            name: name,
-                            type: type,
-                            status: .active,
-                            healthScore: 75,
-                            creditLimit: Double(creditLimit) ?? 0,
-                            utilisationPercent: 0,
-                            monthlyBurn: 25,
-                            assignedPhone: phone,
-                            assignedEmail: email,
-                            clearScore: 750,
-                            lastActivityDate: Date(),
-                            isFlagged: false,
-                            notes: notes,
-                            createdDate: Date(),
-                            emailAccountId: selectedEmailAccountId
-                        )
-                        store.addEntity(entity)
-                        dismiss()
-                    }
-                    .disabled(name.isEmpty)
-                }
-            }
         }
     }
 }

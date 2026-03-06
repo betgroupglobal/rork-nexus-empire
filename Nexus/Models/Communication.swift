@@ -18,8 +18,6 @@ nonisolated enum CommType: String, Codable, CaseIterable, Identifiable, Sendable
 
 struct Communication: Identifiable, Hashable, Sendable, Codable {
     let id: UUID
-    let entityId: UUID
-    let entityName: String
     var type: CommType
     var sender: String
     var content: String

@@ -1,47 +1,9 @@
 import Foundation
 
-nonisolated struct EntityDTO: Codable, Sendable {
-    let id: String
-    let name: String
-    let type: String
-    let status: String
-    let healthScore: Int
-    let creditLimit: Double
-    let utilisationPercent: Double
-    let monthlyBurn: Double
-    let assignedPhone: String
-    let assignedEmail: String
-    let clearScore: Int
-    let lastActivityDate: String
-    let isFlagged: Bool
-    let notes: String
-    let createdDate: String
-
-    func toModel() -> NexusEntity {
-        NexusEntity(
-            id: UUID(uuidString: id) ?? UUID(),
-            name: name,
-            type: EntityType(rawValue: type) ?? .person,
-            status: EntityStatus(rawValue: status) ?? .active,
-            healthScore: healthScore,
-            creditLimit: creditLimit,
-            utilisationPercent: utilisationPercent,
-            monthlyBurn: monthlyBurn,
-            assignedPhone: assignedPhone,
-            assignedEmail: assignedEmail,
-            clearScore: clearScore,
-            lastActivityDate: ISO8601DateFormatter().date(from: lastActivityDate) ?? Date(),
-            isFlagged: isFlagged,
-            notes: notes,
-            createdDate: ISO8601DateFormatter().date(from: createdDate) ?? Date()
-        )
-    }
-}
-
 nonisolated struct CommunicationDTO: Codable, Sendable {
     let id: String
-    let entityId: String
-    let entityName: String
+    let entityId: String?
+    let entityName: String?
     let type: String
     let sender: String
     let content: String
@@ -54,8 +16,6 @@ nonisolated struct CommunicationDTO: Codable, Sendable {
     func toModel() -> Communication {
         Communication(
             id: UUID(uuidString: id) ?? UUID(),
-            entityId: UUID(uuidString: entityId) ?? UUID(),
-            entityName: entityName,
             type: CommType(rawValue: type) ?? .sms,
             sender: sender,
             content: content,
@@ -70,8 +30,8 @@ nonisolated struct CommunicationDTO: Codable, Sendable {
 
 nonisolated struct EmailDTO: Codable, Sendable {
     let id: String
-    let entityId: String
-    let entityName: String
+    let entityId: String?
+    let entityName: String?
     let sender: String
     let senderAddress: String
     let subject: String
@@ -86,8 +46,6 @@ nonisolated struct EmailDTO: Codable, Sendable {
     func toModel() -> EmailMessage {
         EmailMessage(
             id: UUID(uuidString: id) ?? UUID(),
-            entityId: UUID(uuidString: entityId) ?? UUID(),
-            entityName: entityName,
             sender: sender,
             senderAddress: senderAddress,
             subject: subject,
@@ -116,8 +74,6 @@ nonisolated struct AlertDTO: Codable, Sendable {
     func toModel() -> NexusAlert {
         NexusAlert(
             id: UUID(uuidString: id) ?? UUID(),
-            entityId: entityId.flatMap { UUID(uuidString: $0) },
-            entityName: entityName,
             type: AlertType(rawValue: type) ?? .newComm,
             priority: AlertPriority(rawValue: priority) ?? .info,
             title: title,
