@@ -44,17 +44,19 @@ class AuthService {
     var isConfigured: Bool { !baseURL.isEmpty }
 
     func login(email: String, password: String) async throws -> AuthResponse {
+        guard isConfigured else { throw APIError.notConfigured }
         let input = LoginInput(email: email, password: password)
         return try await performMutationWithRetry(procedure: "auth.login", input: input)
     }
 
     func register(email: String, password: String, name: String) async throws -> AuthResponse {
+        guard isConfigured else { throw APIError.notConfigured }
         let input = RegisterInput(email: email, password: password, name: name)
         return try await performMutationWithRetry(procedure: "auth.register", input: input)
     }
 
     func fetchMe(token: String) async throws -> AuthUser {
-        guard !baseURL.isEmpty else { throw APIError.notConfigured }
+        guard isConfigured else { throw APIError.notConfigured }
         guard let url = URL(string: "\(baseURL)/auth.me") else { throw APIError.invalidURL }
 
         var request = URLRequest(url: url)
@@ -63,29 +65,26 @@ class AuthService {
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
         let (data, response) = try await session.data(for: request)
-        if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
-            let body = String(data: data, encoding: .utf8) ?? ""
-            throw APIError.serverError(http.statusCode, body)
-        }
+        try checkHTTPError(data: data, response: response)
         let trpc = try decoder.decode(TRPCResponse<AuthUser>.self, from: data)
         return trpc.result.data.json
     }
 
-    private func performMutationWithRetry<T: Decodable & Sendable>(procedure: String, input: any Encodable, retries: Int = 1) async throws -> T {
+    private func performMutationWithRetry<T: Decodable & Sendable>(procedure: String, input: any Encodable, retries: Int = 2) async throws -> T {
         var lastError: Error?
         for attempt in 0...retries {
             do {
                 let result: T = try await performMutation(procedure: procedure, input: input)
                 return result
-            } catch let error as URLError where error.code == .timedOut && attempt < retries {
+            } catch let error as URLError where (error.code == .timedOut || error.code == .networkConnectionLost) && attempt < retries {
                 lastError = error
-                try? await Task.sleep(for: .seconds(1))
+                try? await Task.sleep(for: .seconds(Double(attempt + 1)))
                 continue
             } catch {
                 throw error
             }
         }
-        throw lastError ?? APIError.serverError(0, "Request failed")
+        throw lastError ?? APIError.serverError(0, "Request failed after retries")
     }
 
     private func performMutation<T: Decodable & Sendable>(procedure: String, input: any Encodable) async throws -> T {
@@ -100,15 +99,24 @@ class AuthService {
         request.httpBody = try encoder.encode(SuperJSONInput(json: AnyEncodable(input)))
 
         let (data, response) = try await session.data(for: request)
-        if let http = response as? HTTPURLResponse, http.statusCode >= 400 {
-            if let trpcError = try? decoder.decode(TRPCErrorResponse.self, from: data),
-               let message = trpcError.error.message ?? trpcError.error.data?.message {
-                throw APIError.serverError(http.statusCode, message)
-            }
-            let body = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw APIError.serverError(http.statusCode, body)
+        try checkHTTPError(data: data, response: response)
+
+        do {
+            let trpc = try decoder.decode(TRPCResponse<T>.self, from: data)
+            return trpc.result.data.json
+        } catch {
+            let raw = String(data: data, encoding: .utf8) ?? "empty"
+            throw APIError.serverError(0, "Failed to decode response: \(raw.prefix(200))")
         }
-        let trpc = try decoder.decode(TRPCResponse<T>.self, from: data)
-        return trpc.result.data.json
+    }
+
+    private func checkHTTPError(data: Data, response: URLResponse) throws {
+        guard let http = response as? HTTPURLResponse, http.statusCode >= 400 else { return }
+        if let trpcError = try? decoder.decode(TRPCErrorResponse.self, from: data) {
+            let message = trpcError.error.message ?? trpcError.error.data?.message ?? "Server error"
+            throw APIError.serverError(http.statusCode, message)
+        }
+        let body = String(data: data, encoding: .utf8) ?? "Unknown error"
+        throw APIError.serverError(http.statusCode, body)
     }
 }
