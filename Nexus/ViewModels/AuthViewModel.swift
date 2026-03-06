@@ -59,6 +59,17 @@ class AuthViewModel {
             isAuthenticated = true
         } catch let error as APIError {
             errorMessage = error.errorDescription
+        } catch let error as URLError {
+            switch error.code {
+            case .timedOut:
+                errorMessage = "Server is taking too long. Please try again."
+            case .notConnectedToInternet:
+                errorMessage = "No internet connection."
+            case .cannotConnectToHost, .cannotFindHost:
+                errorMessage = "Cannot reach the server. Please try again later."
+            default:
+                errorMessage = "Connection error. Please try again."
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -76,6 +87,17 @@ class AuthViewModel {
             isAuthenticated = true
         } catch let error as APIError {
             errorMessage = error.errorDescription
+        } catch let error as URLError {
+            switch error.code {
+            case .timedOut:
+                errorMessage = "Server is taking too long. Please try again."
+            case .notConnectedToInternet:
+                errorMessage = "No internet connection."
+            case .cannotConnectToHost, .cannotFindHost:
+                errorMessage = "Cannot reach the server. Please try again later."
+            default:
+                errorMessage = "Connection error. Please try again."
+            }
         } catch {
             errorMessage = error.localizedDescription
         }

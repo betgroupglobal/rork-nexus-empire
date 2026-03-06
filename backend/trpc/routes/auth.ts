@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 
 const JWT_SECRET = process.env.JWT_SECRET || "nexus-secret-key-change-in-production";
 const TOKEN_EXPIRY_HOURS = 72;
+const PBKDF2_ITERATIONS = 100000;
 
 interface StoredUser {
   id: string;
@@ -17,6 +18,72 @@ const users: StoredUser[] = [];
 
 function generateId(): string {
   return crypto.randomUUID();
+}
+
+function arrayBufferToHex(buffer: ArrayBuffer): string {
+  return Array.from(new Uint8Array(buffer))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function hexToArrayBuffer(hex: string): ArrayBuffer {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+  }
+  return bytes.buffer;
+}
+
+async function hashPassword(password: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"]
+  );
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt: salt,
+      iterations: PBKDF2_ITERATIONS,
+      hash: "SHA-256",
+    },
+    keyMaterial,
+    256
+  );
+  const saltHex = arrayBufferToHex(salt.buffer);
+  const hashHex = arrayBufferToHex(derivedBits);
+  return `${PBKDF2_ITERATIONS}${saltHex}${hashHex}`;
+}
+
+async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  const [iterStr, saltHex, hashHex] = stored.split("$");
+  if (!iterStr || !saltHex || !hashHex) return false;
+  const iterations = parseInt(iterStr, 10);
+  const salt = new Uint8Array(hexToArrayBuffer(saltHex));
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(password),
+    "PBKDF2",
+    false,
+    ["deriveBits"]
+  );
+  const derivedBits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt: salt,
+      iterations: iterations,
+      hash: "SHA-256",
+    },
+    keyMaterial,
+    256
+  );
+  const derivedHex = arrayBufferToHex(derivedBits);
+  return derivedHex === hashHex;
 }
 
 async function createJWT(payload: { userId: string; email: string }): Promise<string> {
@@ -94,7 +161,7 @@ export const authRouter = createTRPCRouter({
       if (existing) {
         throw new TRPCError({ code: "CONFLICT", message: "Email already registered" });
       }
-      const passwordHash = await Bun.password.hash(input.password, { algorithm: "bcrypt" });
+      const passwordHash = await hashPassword(input.password);
       const user: StoredUser = {
         id: generateId(),
         email: input.email.toLowerCase(),
@@ -119,7 +186,7 @@ export const authRouter = createTRPCRouter({
       if (!user) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
       }
-      const valid = await Bun.password.verify(input.password, user.passwordHash);
+      const valid = await verifyPassword(input.password, user.passwordHash);
       if (!valid) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
       }

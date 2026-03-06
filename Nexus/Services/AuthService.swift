@@ -35,7 +35,8 @@ class AuthService {
         baseURL = configURL.isEmpty ? "" : configURL + "/api/trpc"
 
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForRequest = 60
+        config.timeoutIntervalForResource = 120
         session = URLSession(configuration: config)
         decoder = JSONDecoder()
     }
@@ -44,12 +45,12 @@ class AuthService {
 
     func login(email: String, password: String) async throws -> AuthResponse {
         let input = LoginInput(email: email, password: password)
-        return try await performMutation(procedure: "auth.login", input: input)
+        return try await performMutationWithRetry(procedure: "auth.login", input: input)
     }
 
     func register(email: String, password: String, name: String) async throws -> AuthResponse {
         let input = RegisterInput(email: email, password: password, name: name)
-        return try await performMutation(procedure: "auth.register", input: input)
+        return try await performMutationWithRetry(procedure: "auth.register", input: input)
     }
 
     func fetchMe(token: String) async throws -> AuthUser {
@@ -68,6 +69,23 @@ class AuthService {
         }
         let trpc = try decoder.decode(TRPCResponse<AuthUser>.self, from: data)
         return trpc.result.data.json
+    }
+
+    private func performMutationWithRetry<T: Decodable & Sendable>(procedure: String, input: any Encodable, retries: Int = 1) async throws -> T {
+        var lastError: Error?
+        for attempt in 0...retries {
+            do {
+                let result: T = try await performMutation(procedure: procedure, input: input)
+                return result
+            } catch let error as URLError where error.code == .timedOut && attempt < retries {
+                lastError = error
+                try? await Task.sleep(for: .seconds(1))
+                continue
+            } catch {
+                throw error
+            }
+        }
+        throw lastError ?? APIError.serverError(0, "Request failed")
     }
 
     private func performMutation<T: Decodable & Sendable>(procedure: String, input: any Encodable) async throws -> T {
