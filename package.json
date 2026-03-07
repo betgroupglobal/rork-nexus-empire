@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "lint": "bunx tsc --noEmit",
+    "lint": "biome lint backend app",
     "typecheck": "bunx tsc --noEmit",
     "build": "bunx tsc --noEmit"
   },
@@ -16,6 +16,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
     "@types/bun": "latest",
     "typescript": "^5.9.3"
   }

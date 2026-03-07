@@ -28,7 +28,7 @@ function arrayBufferToHex(buffer: ArrayBuffer): string {
 function hexToArrayBuffer(hex: string): ArrayBuffer {
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+    bytes[i / 2] = Number.parseInt(hex.substring(i, i + 2), 16);
   }
   return bytes.buffer;
 }
@@ -61,7 +61,7 @@ async function hashPassword(password: string): Promise<string> {
 async function verifyPassword(password: string, stored: string): Promise<boolean> {
   const [iterStr, saltHex, hashHex] = stored.split("$");
   if (!iterStr || !saltHex || !hashHex) return false;
-  const iterations = parseInt(iterStr, 10);
+  const iterations = Number.parseInt(iterStr, 10);
   const salt = new Uint8Array(hexToArrayBuffer(saltHex));
   const encoder = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
