@@ -7,13 +7,15 @@ export const emailsRouter = createTRPCRouter({
     .input(
       z.object({
         entityId: z.string().uuid().optional(),
+        subjectId: z.string().uuid().optional(),
         category: EmailCategoryEnum.optional(),
       }).optional()
     )
     .query(({ input }) => {
       let emails = db.emails;
-      if (input?.entityId) {
-        emails = emails.filter((e) => e.entityId === input.entityId);
+      const scopedId = input?.subjectId ?? input?.entityId;
+      if (scopedId) {
+        emails = emails.filter((e) => e.entityId === scopedId);
       }
       if (input?.category) {
         emails = emails.filter((e) => e.category === input.category);

@@ -1,11 +1,24 @@
 import { z } from "zod";
 
 export const EntityTypeEnum = z.enum(["Person", "Ltd", "Trust"]);
-export const EntityStatusEnum = z.enum(["Active", "Dormant", "At Risk", "Archived"]);
+export const EntityStatusEnum = z.enum(["Active", "Pending", "Dormant", "At Risk", "Archived"]);
+export const ApplicationStatusEnum = z.enum(["Submitted", "In Review", "Approved", "Declined", "Docs Needed", "Stalled"]);
 export const CommTypeEnum = z.enum(["SMS", "Call", "Voicemail"]);
-export const EmailCategoryEnum = z.enum(["Statement", "Approval", "ATO Notice", "General"]);
-export const AlertTypeEnum = z.enum(["Utilisation", "ClearScore", "Dormant", "New Comm", "Application"]);
+export const EmailCategoryEnum = z.enum(["Statement", "Approval", "Bank Notice", "ATO Notice", "General"]);
+export const AlertTypeEnum = z.enum(["Stalled App", "Score Drop", "Verification", "New Comm", "Utilisation", "Dormant", "Application", "ClearScore"]);
 export const AlertPriorityEnum = z.enum(["Critical", "Warning", "Info"]);
+
+export const CreditApplicationSchema = z.object({
+  id: z.string().uuid(),
+  bank: z.string(),
+  product: z.string(),
+  status: ApplicationStatusEnum,
+  progressPercent: z.number().int().min(0).max(100),
+  submittedDate: z.string(),
+  lastUpdateDate: z.string(),
+  nextAction: z.string(),
+  documents: z.string(),
+});
 
 export const EntitySchema = z.object({
   id: z.string().uuid(),
@@ -23,6 +36,10 @@ export const EntitySchema = z.object({
   isFlagged: z.boolean(),
   notes: z.string(),
   createdDate: z.string(),
+  dateOfBirth: z.string(),
+  address: z.string(),
+  idNumber: z.string(),
+  applications: z.array(CreditApplicationSchema),
 });
 
 export const CommunicationSchema = z.object({
@@ -67,6 +84,7 @@ export const AlertSchema = z.object({
   isRead: z.boolean(),
 });
 
+export type CreditApplication = z.infer<typeof CreditApplicationSchema>;
 export type Entity = z.infer<typeof EntitySchema>;
 export type Communication = z.infer<typeof CommunicationSchema>;
 export type Email = z.infer<typeof EmailSchema>;
@@ -86,6 +104,36 @@ const e6Id = "a1b2c3d4-e5f6-7890-abcd-ef1234567806";
 const e7Id = "a1b2c3d4-e5f6-7890-abcd-ef1234567807";
 const e8Id = "a1b2c3d4-e5f6-7890-abcd-ef1234567808";
 
+const applicationsByEntity: Record<string, CreditApplication[]> = {
+  [e1Id]: [
+    { id: "b1000001-0000-0000-0000-000000000001", bank: "CBA", product: "Business Credit Line", status: "In Review", progressPercent: 72, submittedDate: d(26), lastUpdateDate: d(2), nextAction: "Upload updated BAS", documents: "ID, BAS, Bank Statements" },
+    { id: "b1000001-0000-0000-0000-000000000002", bank: "Westpac", product: "Merchant Facility", status: "Submitted", progressPercent: 34, submittedDate: d(9), lastUpdateDate: d(1), nextAction: "Await assessor assignment", documents: "Merchant History" },
+  ],
+  [e2Id]: [
+    { id: "b1000001-0000-0000-0000-000000000003", bank: "Westpac", product: "Platinum Card", status: "Approved", progressPercent: 100, submittedDate: d(41), lastUpdateDate: d(12), nextAction: "Card dispatched", documents: "Payslips, ID" },
+  ],
+  [e3Id]: [
+    { id: "b1000001-0000-0000-0000-000000000004", bank: "CBA", product: "Trust Overdraft", status: "Docs Needed", progressPercent: 58, submittedDate: d(31), lastUpdateDate: d(3), nextAction: "Provide trust deed variation", documents: "Trust Deed, Financials" },
+    { id: "b1000001-0000-0000-0000-000000000005", bank: "ANZ", product: "Business Loan", status: "Stalled", progressPercent: 44, submittedDate: d(53), lastUpdateDate: d(17), nextAction: "Follow up relationship manager", documents: "Tax Returns" },
+  ],
+  [e4Id]: [
+    { id: "b1000001-0000-0000-0000-000000000006", bank: "NAB", product: "Credit Limit Increase", status: "Approved", progressPercent: 100, submittedDate: d(15), lastUpdateDate: d(4), nextAction: "Limit update processing", documents: "Management Accounts" },
+  ],
+  [e5Id]: [
+    { id: "b1000001-0000-0000-0000-000000000007", bank: "ANZ", product: "Personal Loan", status: "Declined", progressPercent: 100, submittedDate: d(64), lastUpdateDate: d(30), nextAction: "Reapply after score recovery", documents: "Credit Report" },
+  ],
+  [e6Id]: [
+    { id: "b1000001-0000-0000-0000-000000000008", bank: "Macquarie", product: "Business Card", status: "In Review", progressPercent: 66, submittedDate: d(18), lastUpdateDate: d(2), nextAction: "Confirm guarantor details", documents: "Director IDs" },
+    { id: "b1000001-0000-0000-0000-000000000009", bank: "CBA", product: "Equipment Finance", status: "Submitted", progressPercent: 29, submittedDate: d(7), lastUpdateDate: h(20 / 24), nextAction: "Await valuation", documents: "Asset Quotes" },
+  ],
+  [e7Id]: [
+    { id: "b1000001-0000-0000-0000-000000000010", bank: "ANZ", product: "Balance Transfer", status: "Stalled", progressPercent: 39, submittedDate: d(47), lastUpdateDate: d(20), nextAction: "Resolve verification mismatch", documents: "ID, Utility Bill" },
+  ],
+  [e8Id]: [
+    { id: "b1000001-0000-0000-0000-000000000011", bank: "CBA", product: "Trust Card", status: "Docs Needed", progressPercent: 61, submittedDate: d(23), lastUpdateDate: d(5), nextAction: "Upload trustee minutes", documents: "Minutes, Trust Deed" },
+  ],
+};
+
 interface StoredUser {
   id: string;
   email: string;
@@ -102,14 +150,14 @@ export const db: {
   users: StoredUser[];
 } = {
   entities: [
-    { id: e1Id, name: "Apex Holdings Pty Ltd", type: "Ltd" as const, status: "Active" as const, healthScore: 92, creditLimit: 75000, utilisationPercent: 12, monthlyBurn: 45, assignedPhone: "+61 4 5555 0101", assignedEmail: "apex@addy.io", clearScore: 845, lastActivityDate: h(3), isFlagged: false, notes: "Primary vehicle. CBA business account.", createdDate: m(14) },
-    { id: e2Id, name: "Jordan Mitchell", type: "Person" as const, status: "Active" as const, healthScore: 87, creditLimit: 45000, utilisationPercent: 8, monthlyBurn: 29, assignedPhone: "+61 4 5555 0202", assignedEmail: "j.mitchell@addy.io", clearScore: 812, lastActivityDate: d(1), isFlagged: false, notes: "Clean profile. Westpac personal.", createdDate: m(11) },
-    { id: e3Id, name: "Pinnacle Trust", type: "Trust" as const, status: "Active" as const, healthScore: 78, creditLimit: 120000, utilisationPercent: 22, monthlyBurn: 52, assignedPhone: "+61 4 5555 0303", assignedEmail: "pinnacle@addy.io", clearScore: 788, lastActivityDate: d(4), isFlagged: true, notes: "High limit. Monitor utilisation closely.", createdDate: m(9) },
-    { id: e4Id, name: "Velocity Ventures Pty Ltd", type: "Ltd" as const, status: "Active" as const, healthScore: 95, creditLimit: 60000, utilisationPercent: 5, monthlyBurn: 38, assignedPhone: "+61 4 5555 0404", assignedEmail: "velocity@addy.io", clearScore: 867, lastActivityDate: h(8), isFlagged: false, notes: "NAB business. Excellent standing.", createdDate: m(7) },
-    { id: e5Id, name: "Sarah Chen", type: "Person" as const, status: "Dormant" as const, healthScore: 55, creditLimit: 30000, utilisationPercent: 3, monthlyBurn: 22, assignedPhone: "+61 4 5555 0505", assignedEmail: "s.chen@addy.io", clearScore: 734, lastActivityDate: d(45), isFlagged: false, notes: "Needs reactivation. ANZ personal.", createdDate: m(18) },
-    { id: e6Id, name: "Orion Group Pty Ltd", type: "Ltd" as const, status: "Active" as const, healthScore: 84, creditLimit: 90000, utilisationPercent: 18, monthlyBurn: 41, assignedPhone: "+61 4 5555 0606", assignedEmail: "orion@addy.io", clearScore: 801, lastActivityDate: d(2), isFlagged: false, notes: "Macquarie business. Strong history.", createdDate: m(6) },
-    { id: e7Id, name: "Blake Thompson", type: "Person" as const, status: "At Risk" as const, healthScore: 38, creditLimit: 25000, utilisationPercent: 67, monthlyBurn: 35, assignedPhone: "+61 4 5555 0707", assignedEmail: "b.thompson@addy.io", clearScore: 621, lastActivityDate: d(12), isFlagged: true, notes: "ClearScore dropping. Reduce utilisation ASAP.", createdDate: m(20) },
-    { id: e8Id, name: "Summit Capital Trust", type: "Trust" as const, status: "Active" as const, healthScore: 71, creditLimit: 55000, utilisationPercent: 28, monthlyBurn: 50, assignedPhone: "+61 4 5555 0808", assignedEmail: "summit@addy.io", clearScore: 756, lastActivityDate: d(6), isFlagged: false, notes: "CBA trust account. Moderate activity.", createdDate: m(5) },
+    { id: e1Id, name: "Apex Holdings Pty Ltd", type: "Ltd" as const, status: "Active" as const, healthScore: 92, creditLimit: 75000, utilisationPercent: 12, monthlyBurn: 45, assignedPhone: "+61 4 5555 0101", assignedEmail: "apex@addy.io", clearScore: 845, lastActivityDate: h(3), isFlagged: false, notes: "Primary vehicle. CBA business account.", createdDate: m(14), dateOfBirth: "1990-02-14", address: "88 Collins St, Melbourne VIC", idNumber: "ABN-91-245-001-111", applications: applicationsByEntity[e1Id] ?? [] },
+    { id: e2Id, name: "Jordan Mitchell", type: "Person" as const, status: "Active" as const, healthScore: 87, creditLimit: 45000, utilisationPercent: 8, monthlyBurn: 29, assignedPhone: "+61 4 5555 0202", assignedEmail: "j.mitchell@addy.io", clearScore: 812, lastActivityDate: d(1), isFlagged: false, notes: "Clean profile. Westpac personal.", createdDate: m(11), dateOfBirth: "1989-06-30", address: "14 Lakeview Rd, Sydney NSW", idNumber: "DL-NSW-3521947", applications: applicationsByEntity[e2Id] ?? [] },
+    { id: e3Id, name: "Pinnacle Trust", type: "Trust" as const, status: "Pending" as const, healthScore: 78, creditLimit: 120000, utilisationPercent: 22, monthlyBurn: 52, assignedPhone: "+61 4 5555 0303", assignedEmail: "pinnacle@addy.io", clearScore: 788, lastActivityDate: d(4), isFlagged: true, notes: "High limit. Monitor utilisation closely.", createdDate: m(9), dateOfBirth: "2013-01-01", address: "Level 9, 200 Queen St, Brisbane QLD", idNumber: "TRUST-PIN-8821", applications: applicationsByEntity[e3Id] ?? [] },
+    { id: e4Id, name: "Velocity Ventures Pty Ltd", type: "Ltd" as const, status: "Active" as const, healthScore: 95, creditLimit: 60000, utilisationPercent: 5, monthlyBurn: 38, assignedPhone: "+61 4 5555 0404", assignedEmail: "velocity@addy.io", clearScore: 867, lastActivityDate: h(8), isFlagged: false, notes: "NAB business. Excellent standing.", createdDate: m(7), dateOfBirth: "1994-11-03", address: "27 King St, Perth WA", idNumber: "ABN-13-982-221-004", applications: applicationsByEntity[e4Id] ?? [] },
+    { id: e5Id, name: "Sarah Chen", type: "Person" as const, status: "Dormant" as const, healthScore: 55, creditLimit: 30000, utilisationPercent: 3, monthlyBurn: 22, assignedPhone: "+61 4 5555 0505", assignedEmail: "s.chen@addy.io", clearScore: 734, lastActivityDate: d(45), isFlagged: false, notes: "Needs reactivation. ANZ personal.", createdDate: m(18), dateOfBirth: "1992-10-11", address: "3 Bayview Ave, Adelaide SA", idNumber: "PP-AU-E72K11", applications: applicationsByEntity[e5Id] ?? [] },
+    { id: e6Id, name: "Orion Group Pty Ltd", type: "Ltd" as const, status: "Active" as const, healthScore: 84, creditLimit: 90000, utilisationPercent: 18, monthlyBurn: 41, assignedPhone: "+61 4 5555 0606", assignedEmail: "orion@addy.io", clearScore: 801, lastActivityDate: d(2), isFlagged: false, notes: "Macquarie business. Strong history.", createdDate: m(6), dateOfBirth: "1986-03-19", address: "120 Hunter St, Newcastle NSW", idNumber: "ABN-54-210-998-441", applications: applicationsByEntity[e6Id] ?? [] },
+    { id: e7Id, name: "Blake Thompson", type: "Person" as const, status: "At Risk" as const, healthScore: 38, creditLimit: 25000, utilisationPercent: 67, monthlyBurn: 35, assignedPhone: "+61 4 5555 0707", assignedEmail: "b.thompson@addy.io", clearScore: 621, lastActivityDate: d(12), isFlagged: true, notes: "ClearScore dropping. Reduce utilisation ASAP.", createdDate: m(20), dateOfBirth: "1988-09-04", address: "19 Chapel St, Melbourne VIC", idNumber: "DL-VIC-8844112", applications: applicationsByEntity[e7Id] ?? [] },
+    { id: e8Id, name: "Summit Capital Trust", type: "Trust" as const, status: "Active" as const, healthScore: 71, creditLimit: 55000, utilisationPercent: 28, monthlyBurn: 50, assignedPhone: "+61 4 5555 0808", assignedEmail: "summit@addy.io", clearScore: 756, lastActivityDate: d(6), isFlagged: false, notes: "CBA trust account. Moderate activity.", createdDate: m(5), dateOfBirth: "2015-07-01", address: "45 Flinders Ln, Melbourne VIC", idNumber: "TRUST-SUM-4102", applications: applicationsByEntity[e8Id] ?? [] },
   ] as Entity[],
 
   communications: [

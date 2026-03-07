@@ -7,13 +7,15 @@ export const communicationsRouter = createTRPCRouter({
     .input(
       z.object({
         entityId: z.string().uuid().optional(),
+        subjectId: z.string().uuid().optional(),
         type: CommTypeEnum.optional(),
       }).optional()
     )
     .query(({ input }) => {
       let comms = db.communications;
-      if (input?.entityId) {
-        comms = comms.filter((c) => c.entityId === input.entityId);
+      const scopedId = input?.subjectId ?? input?.entityId;
+      if (scopedId) {
+        comms = comms.filter((c) => c.entityId === scopedId);
       }
       if (input?.type) {
         comms = comms.filter((c) => c.type === input.type);
@@ -35,8 +37,10 @@ export const communicationsRouter = createTRPCRouter({
   create: publicProcedure
     .input(
       z.object({
-        entityId: z.string().uuid(),
-        entityName: z.string(),
+        entityId: z.string().uuid().optional(),
+        subjectId: z.string().uuid().optional(),
+        entityName: z.string().optional(),
+        subjectName: z.string().optional(),
         type: CommTypeEnum,
         sender: z.string(),
         content: z.string(),
@@ -46,9 +50,20 @@ export const communicationsRouter = createTRPCRouter({
       })
     )
     .mutation(({ input }) => {
+      const linkedId = input.subjectId ?? input.entityId;
+      const linkedName = input.subjectName ?? input.entityName;
+      if (!linkedId || !linkedName) {
+        throw new Error("subjectId/entityId and subjectName/entityName are required");
+      }
+
       const comm = {
         id: crypto.randomUUID(),
-        ...input,
+        entityId: linkedId,
+        entityName: linkedName,
+        type: input.type,
+        sender: input.sender,
+        content: input.content,
+        phoneNumber: input.phoneNumber,
         timestamp: new Date().toISOString(),
         isRead: false,
         duration: input.duration ?? null,

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../create-context";
-import { db, EntitySchema, EntityTypeEnum, EntityStatusEnum } from "../../db";
+import { db, EntityTypeEnum, EntityStatusEnum } from "../../db";
 
 export const entitiesRouter = createTRPCRouter({
   list: publicProcedure.query(() => {
@@ -43,6 +43,10 @@ export const entitiesRouter = createTRPCRouter({
         isFlagged: false,
         notes: input.notes ?? "",
         createdDate: new Date().toISOString(),
+        dateOfBirth: "",
+        address: "",
+        idNumber: "",
+        applications: [],
       };
       db.entities.push(entity);
       return entity;
@@ -97,6 +101,8 @@ export const entitiesRouter = createTRPCRouter({
 
   dashboard: publicProcedure.query(() => {
     const active = db.entities.filter((e) => e.status !== "Archived");
+    const activeStatuses = new Set(["Submitted", "In Review", "Docs Needed", "Stalled"]);
+
     const totalFirepower = active.reduce(
       (sum, e) => sum + e.creditLimit * (1 - e.utilisationPercent / 100),
       0
@@ -105,6 +111,22 @@ export const entitiesRouter = createTRPCRouter({
     const urgentAlerts = db.alerts.filter(
       (a) => !a.isRead && a.priority === "Critical"
     );
+
+    const applicationRows = active.flatMap((subject) =>
+      subject.applications.map((application) => ({ subject, application }))
+    );
+    const currentApplicationsTotal = applicationRows.filter(({ application }) =>
+      activeStatuses.has(application.status)
+    ).length;
+
+    const longestActive = applicationRows
+      .filter(({ application }) => activeStatuses.has(application.status))
+      .sort(
+        (a, b) =>
+          new Date(a.application.submittedDate).getTime() -
+          new Date(b.application.submittedDate).getTime()
+      )[0];
+
     return {
       totalFirepower,
       monthlyBurn,
@@ -113,6 +135,15 @@ export const entitiesRouter = createTRPCRouter({
       urgentCount: urgentAlerts.length,
       unreadComms: db.communications.filter((c) => !c.isRead).length,
       unreadEmails: db.emails.filter((e) => !e.isRead).length,
+      currentApplicationsTotal,
+      longestActive: longestActive
+        ? {
+            subjectId: longestActive.subject.id,
+            subjectName: longestActive.subject.name,
+            bank: longestActive.application.bank,
+            submittedDate: longestActive.application.submittedDate,
+          }
+        : null,
     };
   }),
 });
