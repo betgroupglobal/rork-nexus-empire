@@ -17,7 +17,6 @@ struct AlertRowView: View {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(priorityColor.opacity(0.12))
                     .frame(width: 40, height: 40)
-
                 Image(systemName: alert.type.icon)
                     .font(.subheadline)
                     .foregroundStyle(priorityColor)
@@ -42,14 +41,26 @@ struct AlertRowView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
 
-                Text(alert.priority.rawValue)
-                    .font(.caption2)
-                    .fontWeight(.semibold)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(priorityColor.opacity(0.12))
-                    .foregroundStyle(priorityColor)
-                    .clipShape(Capsule())
+                HStack(spacing: 6) {
+                    Text(alert.priority.rawValue)
+                        .font(.caption2)
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(priorityColor.opacity(0.12))
+                        .foregroundStyle(priorityColor)
+                        .clipShape(Capsule())
+
+                    if let name = alert.subjectName {
+                        Text(name)
+                            .font(.caption2)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(.blue.opacity(0.1))
+                            .foregroundStyle(.blue)
+                            .clipShape(Capsule())
+                    }
+                }
             }
 
             if !alert.isRead {

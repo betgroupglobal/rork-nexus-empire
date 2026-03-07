@@ -1,6 +1,7 @@
-import { z } from "zod/v4";
+import { z } from "zod";
 import { publicProcedure, createTRPCRouter } from "../create-context";
 import { TRPCError } from "@trpc/server";
+import { db } from "../../db";
 
 const JWT_SECRET = process.env.JWT_SECRET || "nexus-secret-key-change-in-production";
 const TOKEN_EXPIRY_HOURS = 72;
@@ -13,8 +14,6 @@ interface StoredUser {
   name: string;
   createdAt: string;
 }
-
-const users: StoredUser[] = [];
 
 function generateId(): string {
   return crypto.randomUUID();
@@ -56,7 +55,7 @@ async function hashPassword(password: string): Promise<string> {
   );
   const saltHex = arrayBufferToHex(salt.buffer);
   const hashHex = arrayBufferToHex(derivedBits);
-  return `${PBKDF2_ITERATIONS}${saltHex}${hashHex}`;
+  return `${PBKDF2_ITERATIONS}$${saltHex}$${hashHex}`;
 }
 
 async function verifyPassword(password: string, stored: string): Promise<boolean> {
@@ -144,7 +143,7 @@ export async function verifyJWT(token: string): Promise<{ userId: string; email:
 }
 
 export function getUserFromStore(userId: string): StoredUser | undefined {
-  return users.find((u) => u.id === userId);
+  return db.users.find((u) => u.id === userId);
 }
 
 export const authRouter = createTRPCRouter({
@@ -157,7 +156,7 @@ export const authRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ input }) => {
-      const existing = users.find((u) => u.email === input.email.toLowerCase());
+      const existing = db.users.find((u) => u.email === input.email.toLowerCase());
       if (existing) {
         throw new TRPCError({ code: "CONFLICT", message: "Email already registered" });
       }
@@ -169,7 +168,7 @@ export const authRouter = createTRPCRouter({
         name: input.name,
         createdAt: new Date().toISOString(),
       };
-      users.push(user);
+      db.users.push(user);
       const token = await createJWT({ userId: user.id, email: user.email });
       return { token, user: { id: user.id, email: user.email, name: user.name } };
     }),
@@ -182,7 +181,7 @@ export const authRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ input }) => {
-      const user = users.find((u) => u.email === input.email.toLowerCase());
+      const user = db.users.find((u) => u.email === input.email.toLowerCase());
       if (!user) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
       }

@@ -2,6 +2,7 @@ import SwiftUI
 
 struct EmailInboxView: View {
     let store: NexusStore
+    @Environment(\.isVoidTheme) private var isVoidTheme
     @State private var selectedCategory: EmailCategory? = nil
     @State private var selectedAccountId: UUID? = nil
     @State private var searchText: String = ""
@@ -26,7 +27,7 @@ struct EmailInboxView: View {
                     store.markEmailRead(email)
                     selectedEmail = email
                 } label: {
-                    EmailRowView(email: email, accountName: accountName(for: email))
+                    EmailRowView(email: email, store: store, accountName: accountName(for: email))
                 }
                 .tint(.primary)
                 .swipeActions(edge: .leading) {
@@ -37,18 +38,32 @@ struct EmailInboxView: View {
                     }
                     .tint(.orange)
                 }
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        withAnimation { store.deleteEmail(email) }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+
+                    Button {
+                        withAnimation { store.archiveEmail(email) }
+                    } label: {
+                        Label("Archive", systemImage: "archivebox")
+                    }
+                    .tint(.purple)
+                }
             }
         }
         .listStyle(.plain)
         .searchable(text: $searchText, prompt: "Search emails...")
-        .navigationTitle("Email Inbox")
+        .navigationTitle("Email Router")
         .overlay {
             if filteredEmails.isEmpty {
                 ContentUnavailableView("No Emails", systemImage: "envelope.open", description: Text("No emails match your filters"))
             }
         }
         .sheet(item: $selectedEmail) { email in
-            EmailDetailSheet(email: email, accountName: accountName(for: email))
+            EmailDetailSheet(email: email, accountName: accountName(for: email), store: store)
         }
     }
 
@@ -66,15 +81,15 @@ struct EmailInboxView: View {
                     )
                 }
             }
-            .padding(.horizontal, 16)
             .padding(.vertical, 6)
         }
+        .contentMargins(.horizontal, 16)
         .scrollIndicators(.hidden)
     }
 
     private func accountChip(label: String, accountId: UUID?, icon: String, color: Color, badge: Int = 0) -> some View {
         Button {
-            withAnimation(.snappy) { selectedAccountId = accountId }
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { selectedAccountId = accountId }
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: icon)
@@ -94,7 +109,7 @@ struct EmailInboxView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
-            .background(selectedAccountId == accountId ? color : Color(.tertiarySystemGroupedBackground))
+            .background(selectedAccountId == accountId ? color : (isVoidTheme ? Color.white.opacity(0.08) : Color(.tertiarySystemGroupedBackground)))
             .foregroundStyle(selectedAccountId == accountId ? .white : .primary)
             .clipShape(Capsule())
         }
@@ -109,15 +124,15 @@ struct EmailInboxView: View {
                     categoryButton(label: cat.rawValue, category: cat)
                 }
             }
-            .padding(.horizontal, 16)
             .padding(.vertical, 4)
         }
+        .contentMargins(.horizontal, 16)
         .scrollIndicators(.hidden)
     }
 
     private func categoryButton(label: String, category: EmailCategory?) -> some View {
         Button {
-            withAnimation(.snappy) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                 selectedCategory = category
             }
         } label: {
@@ -125,7 +140,7 @@ struct EmailInboxView: View {
                 .font(.subheadline)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .background(selectedCategory == category ? .teal : Color(.tertiarySystemGroupedBackground))
+                .background(selectedCategory == category ? .teal : (isVoidTheme ? Color.white.opacity(0.08) : Color(.tertiarySystemGroupedBackground)))
                 .foregroundStyle(selectedCategory == category ? .white : .primary)
                 .clipShape(Capsule())
         }
@@ -147,7 +162,8 @@ struct EmailInboxView: View {
             result = result.filter {
                 $0.subject.localizedStandardContains(searchText) ||
                 $0.sender.localizedStandardContains(searchText) ||
-                $0.snippet.localizedStandardContains(searchText)
+                $0.snippet.localizedStandardContains(searchText) ||
+                ($0.subjectName?.localizedStandardContains(searchText) ?? false)
             }
         }
 
@@ -163,7 +179,10 @@ struct EmailInboxView: View {
 struct EmailDetailSheet: View {
     let email: EmailMessage
     var accountName: String? = nil
+    var store: NexusStore?
     @Environment(\.dismiss) private var dismiss
+    @State private var showArchiveConfirm: Bool = false
+    @State private var showDeleteConfirm: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -190,6 +209,16 @@ struct EmailDetailSheet: View {
                                 .foregroundStyle(.teal)
                                 .clipShape(Capsule())
 
+                            if let name = email.subjectName {
+                                Text(name)
+                                    .font(.caption)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(.blue.opacity(0.1))
+                                    .foregroundStyle(.blue)
+                                    .clipShape(Capsule())
+                            }
+
                             if email.containsDollarAmount {
                                 Image(systemName: "dollarsign.circle.fill")
                                     .foregroundStyle(.green)
@@ -206,17 +235,15 @@ struct EmailDetailSheet: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
-                            Label(email.alias, systemImage: "at")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        if let accountName {
-                            Label(accountName, systemImage: "person.crop.circle")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            if let accountName {
+                                Label(accountName, systemImage: "person.crop.circle")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
+
+                    actionBar
 
                     Divider()
 
@@ -232,9 +259,59 @@ struct EmailDetailSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
+            .confirmationDialog("Archive Email", isPresented: $showArchiveConfirm, titleVisibility: .visible) {
+                Button("Archive") {
+                    store?.archiveEmail(email)
+                    dismiss()
+                }
+            } message: {
+                Text("Move this email to the archive?")
+            }
+            .confirmationDialog("Delete Email", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+                Button("Delete", role: .destructive) {
+                    store?.deleteEmail(email)
+                    dismiss()
+                }
+            } message: {
+                Text("Permanently delete this email?")
+            }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .presentationContentInteraction(.scrolls)
+    }
+
+    private var actionBar: some View {
+        HStack(spacing: 0) {
+            actionButton(icon: "arrowshape.turn.up.left.fill", label: "Reply", color: .blue) {}
+            actionButton(icon: "arrowshape.turn.up.right.fill", label: "Forward", color: .blue) {}
+            actionButton(icon: "flag.fill", label: email.isFlagged ? "Unflag" : "Flag", color: .orange) {
+                store?.toggleEmailFlag(email)
+            }
+            actionButton(icon: "archivebox.fill", label: "Archive", color: .purple) {
+                showArchiveConfirm = true
+            }
+            actionButton(icon: "trash.fill", label: "Delete", color: .red) {
+                showDeleteConfirm = true
+            }
+        }
+        .padding(4)
+        .background(Color(.tertiarySystemGroupedBackground))
+        .clipShape(.rect(cornerRadius: 14))
+    }
+
+    private func actionButton(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.subheadline)
+                    .foregroundStyle(color)
+                Text(label)
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+        }
     }
 }

@@ -19,7 +19,11 @@ app.use(
 );
 
 app.get("/", (c) => {
-  return c.json({ status: "ok", message: "Nexus API is running" });
+  return c.json({ status: "ok", message: "Nexus API is running", version: "1.0.2" });
+});
+
+app.get("/health", (c) => {
+  return c.json({ status: "ok", message: "Nexus API is healthy", version: "1.0.2" });
 });
 
 export default app;

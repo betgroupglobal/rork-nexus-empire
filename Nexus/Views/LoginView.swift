@@ -38,6 +38,16 @@ struct LoginView: View {
                     toggleModeButton
 
                     Spacer()
+                        .frame(height: 20)
+
+                    demoModeButton
+
+                    Spacer()
+                        .frame(height: 12)
+
+                    devLoginButton
+
+                    Spacer()
                         .frame(height: geo.size.height * 0.1)
                 }
                 .padding(.horizontal, 28)
@@ -208,6 +218,53 @@ struct LoginView: View {
                     .fontWeight(.semibold)
             }
             .font(.subheadline)
+        }
+    }
+
+    private var demoModeButton: some View {
+        Button {
+            authVM.loginDemo()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "play.circle.fill")
+                    .font(.subheadline)
+                Text("Enter Demo Mode")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .foregroundStyle(.white.opacity(0.7))
+            .background(Color.white.opacity(0.08))
+            .clipShape(.rect(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            )
+        }
+    }
+
+    private var devLoginButton: some View {
+        Button {
+            email = "dev@nexus.test"
+            password = "devdev123"
+            name = "Dev User"
+            if isRegistering {
+                confirmPassword = "devdev123"
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "hammer.fill")
+                    .font(.caption2)
+                Text("Fill Dev Credentials")
+                    .font(.caption)
+                    .fontWeight(.medium)
+            }
+            .foregroundStyle(.white.opacity(0.3))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Color.white.opacity(0.05))
+            .clipShape(.rect(cornerRadius: 8))
         }
     }
 

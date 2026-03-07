@@ -4,7 +4,7 @@ struct ContentView: View {
     @State private var authVM = AuthViewModel()
     @State private var store = NexusStore()
     @State private var selectedTab: AppTab = .dashboard
-    @AppStorage("appearance") private var appearance: String = "system"
+    @AppStorage("appearance") private var appearance: String = "void"
 
     var body: some View {
         Group {
@@ -16,21 +16,36 @@ struct ContentView: View {
         }
         .animation(.smooth(duration: 0.4), value: authVM.isAuthenticated)
         .preferredColorScheme(colorScheme)
+        .tint(appearance == "void" ? .red : .blue)
+        .environment(\.isVoidTheme, appearance == "void")
     }
 
     private var mainTabView: some View {
         TabView(selection: $selectedTab) {
-            Tab("Dashboard", systemImage: "chart.bar.xaxis", value: .dashboard) {
+            Tab("War Room", systemImage: "chart.bar.xaxis", value: .dashboard) {
                 NavigationStack {
-                    DashboardView(store: store)
+                    DashboardView(store: store, authVM: authVM)
                 }
             }
 
-            Tab("Inbox", systemImage: "tray", value: .inbox) {
+            Tab("Subjects", systemImage: "person.3.fill", value: .subjects) {
                 NavigationStack {
-                    UnifiedInboxView(store: store)
+                    SubjectDatabaseView(store: store)
                 }
-                .badge(store.unreadCommsCount + store.unreadEmailCount)
+            }
+
+            Tab("Comms", systemImage: "antenna.radiowaves.left.and.right", value: .comms) {
+                NavigationStack {
+                    CommsView(store: store)
+                }
+                .badge(store.unreadCommsCount)
+            }
+
+            Tab("Email", systemImage: "envelope.badge", value: .email) {
+                NavigationStack {
+                    EmailInboxView(store: store)
+                }
+                .badge(store.unreadEmailCount)
             }
 
             Tab("Alerts", systemImage: "bell.badge", value: .alerts) {
@@ -39,19 +54,13 @@ struct ContentView: View {
                 }
                 .badge(store.alerts.filter { !$0.isRead }.count)
             }
-
-            Tab("Settings", systemImage: "gearshape", value: .settings) {
-                NavigationStack {
-                    SettingsView(store: store, authVM: authVM)
-                }
-            }
         }
     }
 
     private var colorScheme: ColorScheme? {
         switch appearance {
         case "light": .light
-        case "dark": .dark
+        case "dark", "void": .dark
         default: nil
         }
     }
@@ -59,7 +68,8 @@ struct ContentView: View {
 
 nonisolated enum AppTab: String, Hashable, Sendable {
     case dashboard
-    case inbox
+    case subjects
+    case comms
+    case email
     case alerts
-    case settings
 }

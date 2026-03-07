@@ -4,7 +4,7 @@ struct SettingsView: View {
     let store: NexusStore
     @Bindable var authVM: AuthViewModel
     @State private var showLogoutConfirm: Bool = false
-    @AppStorage("appearance") private var appearance: String = "system"
+    @AppStorage("appearance") private var appearance: String = "void"
 
     var body: some View {
         Form {
@@ -20,7 +20,6 @@ struct SettingsView: View {
                                 )
                             )
                             .frame(width: 52, height: 52)
-
                         Image(systemName: "shield.checkered")
                             .font(.title3)
                             .foregroundStyle(.white)
@@ -69,12 +68,86 @@ struct SettingsView: View {
                 }
             }
 
+            Section {
+                HStack(spacing: 12) {
+                    IntegrationIcon(icon: "server.rack", color: backendStatusColor)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Backend")
+                            .font(.subheadline)
+                        Text(backendStatusLabel)
+                            .font(.caption)
+                            .foregroundStyle(backendStatusColor)
+                    }
+                    Spacer()
+                    switch store.backendStatus {
+                    case .checking:
+                        ProgressView()
+                            .controlSize(.small)
+                    case .connected(_):
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    case .unreachable(_), .unknown:
+                        Button {
+                            Task { await store.checkBackendHealth() }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.subheadline)
+                        }
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    Circle()
+                        .fill(store.dataMode == .live ? Color.green : Color.orange)
+                        .frame(width: 8, height: 8)
+                    Text(store.dataMode == .live ? "Live Data" : "Demo Data")
+                        .font(.caption)
+                        .foregroundStyle(store.dataMode == .live ? .green : .orange)
+                    Spacer()
+                    if store.dataMode == .demo {
+                        Text("Sample mode")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+            } header: {
+                Text("Connection")
+            } footer: {
+                if case .unreachable(let msg) = store.backendStatus {
+                    Text(msg)
+                }
+            }
+
             Section("Appearance") {
                 Picker("Theme", selection: $appearance) {
                     Text("System").tag("system")
                     Text("Light").tag("light")
                     Text("Dark").tag("dark")
+                    Text("Void").tag("void")
                 }
+
+                if appearance == "void" {
+                    HStack(spacing: 8) {
+                        Circle().fill(.red).frame(width: 10, height: 10)
+                        Text("Void: Pure black + red critical bleed")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Section("Data") {
+                if let lastFetch = CacheService.lastFetchDate() {
+                    LabeledContent("Last Synced") {
+                        Text(lastFetch, style: .relative)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                LabeledContent("Subjects", value: "\(store.subjects.count)")
+                LabeledContent("Applications", value: "\(store.currentApplicationsTotal)")
+                LabeledContent("Messages", value: "\(store.communications.count)")
+                LabeledContent("Emails", value: "\(store.emails.count)")
+                LabeledContent("Alerts", value: "\(store.alerts.count)")
             }
 
             if let user = authVM.currentUser {
@@ -152,6 +225,26 @@ struct SettingsView: View {
         guard count > 0 else { return "No accounts" }
         return "\(count) account\(count == 1 ? "" : "s") connected"
     }
+
+    private var backendStatusColor: Color {
+        switch store.backendStatus {
+        case .connected(_): .green
+        case .checking: .orange
+        case .unreachable(_): .red
+        case .unknown: .secondary
+        }
+    }
+
+    private var backendStatusLabel: String {
+        switch store.backendStatus {
+        case .connected(let version):
+            if let v = version { return "Connected (\(v))" }
+            return "Connected"
+        case .checking: return "Checking..."
+        case .unreachable(_): return "Unreachable"
+        case .unknown: return "Not checked"
+        }
+    }
 }
 
 struct IntegrationIcon: View {
@@ -172,7 +265,7 @@ struct IntegrationIcon: View {
 
 struct CrazyTelSettingsView: View {
     let store: NexusStore
-    @AppStorage("crazytel_api_key") private var apiKey: String = ""
+    @State private var apiKey: String = ""
     @AppStorage("crazytel_enabled") private var enabled: Bool = false
     @State private var showingKey: Bool = false
     @State private var isTestingConnection: Bool = false
@@ -211,6 +304,7 @@ struct CrazyTelSettingsView: View {
                 Toggle("Enable Integration", isOn: $enabled)
                     .onChange(of: enabled) { _, newValue in
                         if newValue && !apiKey.isEmpty {
+                            store.crazytelAPIKey = apiKey
                             Task { await store.connectCrazyTel() }
                         } else if !newValue {
                             store.disconnectCrazyTel()
@@ -271,12 +365,14 @@ struct CrazyTelSettingsView: View {
                 if store.ctConnectionStatus == .connected {
                     accountSection
                     didInventorySection
-                    routingSection
                 }
             }
         }
         .navigationTitle("CrazyTel")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            apiKey = store.crazytelAPIKey
+        }
         .refreshable {
             await store.refreshCrazyTel()
         }
@@ -352,9 +448,6 @@ struct CrazyTelSettingsView: View {
                         Text("No DIDs found")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Text("Purchase DIDs from the CrazyTel portal")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
                     }
                     .padding(.vertical, 8)
                     Spacer()
@@ -404,18 +497,6 @@ struct CrazyTelSettingsView: View {
                         .font(.caption)
                 }
             }
-        }
-    }
-
-    private var routingSection: some View {
-        Section {
-            LabeledContent("SMS Forwarding", value: "All DIDs → Nexus")
-            LabeledContent("Call Forwarding", value: "All DIDs → Nexus")
-            LabeledContent("Voicemail", value: "Transcribe + Store")
-        } header: {
-            Text("Routing")
-        } footer: {
-            Text("All inbound SMS, calls, and voicemails are routed through the CrazyTel API into your unified inbox.")
         }
     }
 
@@ -512,9 +593,6 @@ struct EmailIntegrationView: View {
                             Text("No accounts connected")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                            Text("Sign in with Gmail, Outlook, Yahoo, or IMAP")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
                         }
                         .padding(.vertical, 12)
                         Spacer()
@@ -587,12 +665,10 @@ struct EmailAccountRow: View {
                 Text(account.displayName)
                     .font(.subheadline.weight(.medium))
                     .lineLimit(1)
-                HStack(spacing: 6) {
-                    Text(account.emailAddress)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
+                Text(account.emailAddress)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -608,14 +684,10 @@ struct EmailAccountRow: View {
                     .clipShape(Capsule())
             }
 
-            statusIndicator
+            Circle()
+                .fill(statusColor)
+                .frame(width: 8, height: 8)
         }
-    }
-
-    private var statusIndicator: some View {
-        Circle()
-            .fill(statusColor)
-            .frame(width: 8, height: 8)
     }
 
     private var statusColor: Color {
@@ -736,13 +808,10 @@ struct EmailAccountDetailSheet: View {
                         } label: {
                             HStack {
                                 if isLoggingIn {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                    Text("Signing in...")
-                                        .font(.subheadline)
+                                    ProgressView().controlSize(.small)
+                                    Text("Signing in...").font(.subheadline)
                                 } else {
-                                    Label("Sign In", systemImage: "arrow.right.circle.fill")
-                                        .font(.subheadline)
+                                    Label("Sign In", systemImage: "arrow.right.circle.fill").font(.subheadline)
                                 }
                             }
                         }
@@ -779,8 +848,7 @@ struct EmailAccountDetailSheet: View {
                     Button(role: .destructive) {
                         showRemoveConfirm = true
                     } label: {
-                        Label("Remove Account", systemImage: "trash")
-                            .font(.subheadline)
+                        Label("Remove Account", systemImage: "trash").font(.subheadline)
                     }
                 }
             }
@@ -857,8 +925,7 @@ struct AddEmailAccountSheet: View {
                             signIn()
                         } label: {
                             if isLoggingIn {
-                                ProgressView()
-                                    .controlSize(.small)
+                                ProgressView().controlSize(.small)
                             } else {
                                 Text("Sign In")
                             }

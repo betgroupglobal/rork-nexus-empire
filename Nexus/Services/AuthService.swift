@@ -105,18 +105,29 @@ class AuthService {
             let trpc = try decoder.decode(TRPCResponse<T>.self, from: data)
             return trpc.result.data.json
         } catch {
-            let raw = String(data: data, encoding: .utf8) ?? "empty"
-            throw APIError.serverError(0, "Failed to decode response: \(raw.prefix(200))")
+            let raw = String(data: data, encoding: .utf8) ?? ""
+            if raw.contains("Site Not Found") || raw.contains("not yet deployed") {
+                throw APIError.serverError(0, "Backend server is not deployed. Use Demo Mode to explore the app.")
+            }
+            throw APIError.serverError(0, "Server returned an unexpected response format.")
         }
     }
 
     private func checkHTTPError(data: Data, response: URLResponse) throws {
-        guard let http = response as? HTTPURLResponse, http.statusCode >= 400 else { return }
+        guard let http = response as? HTTPURLResponse else { return }
+        let body = String(data: data, encoding: .utf8) ?? ""
+        let isHTML = body.contains("<html") || body.contains("<!DOCTYPE") || body.contains("<HTML")
+        if isHTML {
+            if body.contains("Site Not Found") || body.contains("not yet deployed") || http.statusCode == 404 {
+                throw APIError.serverError(http.statusCode, "Backend server is not deployed. Use Demo Mode to explore the app.")
+            }
+            throw APIError.serverError(http.statusCode, "Server is temporarily unavailable. Use Demo Mode to explore the app.")
+        }
+        guard http.statusCode >= 400 else { return }
         if let trpcError = try? decoder.decode(TRPCErrorResponse.self, from: data) {
             let message = trpcError.error.message ?? trpcError.error.data?.message ?? "Server error"
             throw APIError.serverError(http.statusCode, message)
         }
-        let body = String(data: data, encoding: .utf8) ?? "Unknown error"
-        throw APIError.serverError(http.statusCode, body)
+        throw APIError.serverError(http.statusCode, "Server error (\(http.statusCode)). Please try again.")
     }
 }

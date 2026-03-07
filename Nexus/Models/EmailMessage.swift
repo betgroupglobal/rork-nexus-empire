@@ -3,7 +3,8 @@ import Foundation
 nonisolated enum EmailCategory: String, Codable, CaseIterable, Identifiable, Sendable {
     case statement = "Statement"
     case approval = "Approval"
-    case atoNotice = "ATO Notice"
+    case bankNotice = "Bank Notice"
+    case ird = "IRD"
     case general = "General"
 
     var id: String { rawValue }
@@ -12,7 +13,8 @@ nonisolated enum EmailCategory: String, Codable, CaseIterable, Identifiable, Sen
         switch self {
         case .statement: "doc.text.fill"
         case .approval: "checkmark.seal.fill"
-        case .atoNotice: "building.columns.fill"
+        case .bankNotice: "building.columns.fill"
+        case .ird: "doc.badge.gearshape.fill"
         case .general: "envelope.fill"
         }
     }
@@ -31,4 +33,6 @@ struct EmailMessage: Identifiable, Hashable, Sendable, Codable {
     var containsDollarAmount: Bool
     var alias: String
     var accountId: UUID?
+    var subjectId: String?
+    var subjectName: String?
 }

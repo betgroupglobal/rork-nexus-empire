@@ -1,21 +1,21 @@
 import Foundation
 
 nonisolated enum AlertType: String, Codable, CaseIterable, Identifiable, Sendable {
-    case utilisationWarning = "Utilisation"
-    case clearScoreDrop = "ClearScore"
-    case dormantEntity = "Dormant"
+    case stalledApplication = "Stalled App"
+    case scoreDrop = "Score Drop"
+    case verificationBlock = "Verification"
     case newComm = "New Comm"
-    case applicationWindow = "Application"
+    case utilisationSpike = "Utilisation"
 
     var id: String { rawValue }
 
     var icon: String {
         switch self {
-        case .utilisationWarning: "chart.bar.fill"
-        case .clearScoreDrop: "arrow.down.circle.fill"
-        case .dormantEntity: "moon.zzz.fill"
+        case .stalledApplication: "hourglass"
+        case .scoreDrop: "arrow.down.circle.fill"
+        case .verificationBlock: "exclamationmark.shield.fill"
         case .newComm: "bell.badge.fill"
-        case .applicationWindow: "window.badge.plus"
+        case .utilisationSpike: "chart.bar.fill"
         }
     }
 }
@@ -34,4 +34,6 @@ struct NexusAlert: Identifiable, Hashable, Sendable, Codable {
     var message: String
     var timestamp: Date
     var isRead: Bool
+    var subjectId: String?
+    var subjectName: String?
 }

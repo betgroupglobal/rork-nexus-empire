@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "rork-app",
+      "name": "user",
       "dependencies": {
         "@hono/trpc-server": "^0.4.2",
         "@trpc/client": "^11.12.0",

@@ -1,73 +1,5 @@
 import Foundation
 
-nonisolated struct TRPCResponse<T: Decodable & Sendable>: Decodable, Sendable {
-    let result: TRPCResult<T>
-}
-
-nonisolated struct TRPCResult<T: Decodable & Sendable>: Decodable, Sendable {
-    let data: TRPCData<T>
-}
-
-nonisolated struct TRPCData<T: Decodable & Sendable>: Decodable, Sendable {
-    let json: T
-}
-
-nonisolated struct TRPCErrorResponse: Decodable, Sendable {
-    let error: TRPCErrorBody
-}
-
-nonisolated struct TRPCErrorBody: Decodable, Sendable {
-    let message: String?
-    let code: Int?
-    let data: TRPCErrorData?
-}
-
-nonisolated struct TRPCErrorData: Decodable, Sendable {
-    let code: String?
-    let httpStatus: Int?
-    let message: String?
-}
-
-nonisolated struct DashboardResponse: Codable, Sendable {
-    let totalFirepower: Double
-    let monthlyBurn: Double
-    let activeCount: Int
-    let totalCount: Int
-    let urgentCount: Int
-    let unreadComms: Int
-    let unreadEmails: Int
-}
-
-nonisolated struct SuccessResponse: Codable, Sendable {
-    let success: Bool
-}
-
-nonisolated enum APIError: Error, LocalizedError, Sendable {
-    case invalidURL
-    case serverError(Int, String)
-    case notConfigured
-
-    nonisolated var errorDescription: String? {
-        switch self {
-        case .invalidURL: "Unable to connect to server"
-        case .serverError(_, let message): message
-        case .notConfigured: "API not configured"
-        }
-    }
-}
-
-nonisolated struct SuperJSONInput<T: Encodable & Sendable>: Encodable, Sendable {
-    let json: T
-}
-
-nonisolated struct IDInput: Codable, Sendable {
-    let id: String
-}
-
-nonisolated struct EmptyInput: Codable, Sendable {}
-
-
-
 @MainActor
 class NexusAPIService {
     static let shared = NexusAPIService()
@@ -121,16 +53,7 @@ class NexusAPIService {
         }
 
         let (data, response) = try await session.data(for: request)
-
-        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 400 {
-            if let trpcError = try? decoder.decode(TRPCErrorResponse.self, from: data),
-               let message = trpcError.error.message ?? trpcError.error.data?.message {
-                throw APIError.serverError(httpResponse.statusCode, message)
-            }
-            let body = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw APIError.serverError(httpResponse.statusCode, body)
-        }
-
+        try Self.checkHTTPError(data: data, response: response, decoder: decoder)
         let trpcResponse = try decoder.decode(TRPCResponse<T>.self, from: data)
         return trpcResponse.result.data.json
     }
@@ -152,33 +75,29 @@ class NexusAPIService {
         request.httpBody = try encoder.encode(SuperJSONInput(json: AnyEncodable(input)))
 
         let (data, response) = try await session.data(for: request)
-
-        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 400 {
-            if let trpcError = try? decoder.decode(TRPCErrorResponse.self, from: data),
-               let message = trpcError.error.message ?? trpcError.error.data?.message {
-                throw APIError.serverError(httpResponse.statusCode, message)
-            }
-            let body = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw APIError.serverError(httpResponse.statusCode, body)
-        }
-
+        try Self.checkHTTPError(data: data, response: response, decoder: decoder)
         let trpcResponse = try decoder.decode(TRPCResponse<T>.self, from: data)
         return trpcResponse.result.data.json
     }
 
-    func fetchCommunications() async throws -> [Communication] {
-        let dtos: [CommunicationDTO] = try await performQuery(procedure: "communications.list")
-        return dtos.map { $0.toModel() }
+    private static func checkHTTPError(data: Data, response: URLResponse, decoder: JSONDecoder) throws {
+        guard let http = response as? HTTPURLResponse else { return }
+        let body = String(data: data, encoding: .utf8) ?? ""
+        let isHTML = body.contains("<html") || body.contains("<!DOCTYPE") || body.contains("<HTML")
+        if isHTML {
+            throw APIError.serverError(http.statusCode, "Server returned an unexpected response. Please try again.")
+        }
+        guard http.statusCode >= 400 else { return }
+        if let trpcError = try? decoder.decode(TRPCErrorResponse.self, from: data) {
+            let message = trpcError.error.message ?? trpcError.error.data?.message ?? "Server error"
+            throw APIError.serverError(http.statusCode, message)
+        }
+        throw APIError.serverError(http.statusCode, "Server error (\(http.statusCode)). Please try again.")
     }
 
     func markCommRead(id: String) async throws -> Communication {
         let dto: CommunicationDTO = try await performMutation(procedure: "communications.markRead", input: IDInput(id: id))
         return dto.toModel()
-    }
-
-    func fetchEmails() async throws -> [EmailMessage] {
-        let dtos: [EmailDTO] = try await performQuery(procedure: "emails.list")
-        return dtos.map { $0.toModel() }
     }
 
     func markEmailRead(id: String) async throws -> EmailMessage {
@@ -191,11 +110,6 @@ class NexusAPIService {
         return dto.toModel()
     }
 
-    func fetchAlerts() async throws -> [NexusAlert] {
-        let dtos: [AlertDTO] = try await performQuery(procedure: "alerts.list")
-        return dtos.map { $0.toModel() }
-    }
-
     func markAlertRead(id: String) async throws -> NexusAlert {
         let dto: AlertDTO = try await performMutation(procedure: "alerts.markRead", input: IDInput(id: id))
         return dto.toModel()
@@ -203,6 +117,107 @@ class NexusAPIService {
 
     func markAllAlertsRead() async throws {
         let _: SuccessResponse = try await performMutation(procedure: "alerts.markAllRead", input: EmptyInput())
+    }
+
+    func fetchSubjects() async throws -> [Subject] {
+        let dtos: [EntityDTO] = try await performQuery(procedure: "entities.list")
+        return dtos.map { $0.toModel() }
+    }
+
+    func fetchDashboard() async throws -> DashboardResponse {
+        try await performQuery(procedure: "entities.dashboard")
+    }
+
+    func createSubject(name: String, type: SubjectType, creditLimit: Double, assignedPhone: String, assignedEmail: String, notes: String?) async throws -> Subject {
+        let input = CreateEntityInput(
+            name: name,
+            type: type.rawValue,
+            creditLimit: creditLimit,
+            assignedPhone: assignedPhone,
+            assignedEmail: assignedEmail,
+            notes: notes
+        )
+        let dto: EntityDTO = try await performMutation(procedure: "entities.create", input: input)
+        return dto.toModel()
+    }
+
+    func updateSubject(_ input: UpdateEntityInput) async throws -> Subject {
+        let dto: EntityDTO = try await performMutation(procedure: "entities.update", input: input)
+        return dto.toModel()
+    }
+
+    func archiveSubject(id: String) async throws -> Subject {
+        let dto: EntityDTO = try await performMutation(procedure: "entities.archive", input: IDInput(id: id))
+        return dto.toModel()
+    }
+
+    func toggleSubjectFlag(id: String) async throws -> Subject {
+        let dto: EntityDTO = try await performMutation(procedure: "entities.toggleFlag", input: IDInput(id: id))
+        return dto.toModel()
+    }
+
+    func fetchSubjectById(id: String) async throws -> Subject {
+        let dto: EntityDTO = try await performQuery(procedure: "entities.getById", input: IDInput(id: id))
+        return dto.toModel()
+    }
+
+    func fetchCommunications(entityId: String? = nil, type: CommType? = nil) async throws -> [Communication] {
+        if entityId != nil || type != nil {
+            let input = CommFilterInput(entityId: entityId, type: type?.rawValue)
+            let dtos: [CommunicationDTO] = try await performQuery(procedure: "communications.list", input: input)
+            return dtos.map { $0.toModel() }
+        }
+        let dtos: [CommunicationDTO] = try await performQuery(procedure: "communications.list")
+        return dtos.map { $0.toModel() }
+    }
+
+    func createCommunication(entityId: String, entityName: String, type: CommType, sender: String, content: String, phoneNumber: String, duration: Double? = nil, transcription: String? = nil) async throws -> Communication {
+        let input = CreateCommInput(
+            entityId: entityId,
+            entityName: entityName,
+            type: type.rawValue,
+            sender: sender,
+            content: content,
+            phoneNumber: phoneNumber,
+            duration: duration,
+            transcription: transcription
+        )
+        let dto: CommunicationDTO = try await performMutation(procedure: "communications.create", input: input)
+        return dto.toModel()
+    }
+
+    func fetchEmails(entityId: String? = nil, category: String? = nil) async throws -> [EmailMessage] {
+        if entityId != nil || category != nil {
+            let input = EmailFilterInput(entityId: entityId, category: category)
+            let dtos: [EmailDTO] = try await performQuery(procedure: "emails.list", input: input)
+            return dtos.map { $0.toModel() }
+        }
+        let dtos: [EmailDTO] = try await performQuery(procedure: "emails.list")
+        return dtos.map { $0.toModel() }
+    }
+
+    func fetchAlerts(type: String? = nil) async throws -> [NexusAlert] {
+        if let type {
+            let input = AlertFilterInput(type: type)
+            let dtos: [AlertDTO] = try await performQuery(procedure: "alerts.list", input: input)
+            return dtos.map { $0.toModel() }
+        }
+        let dtos: [AlertDTO] = try await performQuery(procedure: "alerts.list")
+        return dtos.map { $0.toModel() }
+    }
+
+    func checkHealth() async throws -> BackendHealthResponse {
+        guard !baseURL.isEmpty else { throw APIError.notConfigured }
+        let apiBase = baseURL.replacingOccurrences(of: "/api/trpc", with: "/api")
+        guard let url = URL(string: apiBase) else { throw APIError.invalidURL }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 10
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode < 400 else {
+            throw APIError.serverError((response as? HTTPURLResponse)?.statusCode ?? 0, "Backend unreachable")
+        }
+        return try decoder.decode(BackendHealthResponse.self, from: data)
     }
 }
 

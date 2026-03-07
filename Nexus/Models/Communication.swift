@@ -26,4 +26,6 @@ struct Communication: Identifiable, Hashable, Sendable, Codable {
     var phoneNumber: String
     var duration: TimeInterval?
     var transcription: String?
+    var subjectId: String?
+    var subjectName: String?
 }
