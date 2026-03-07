@@ -105,7 +105,11 @@ class AuthService {
             let trpc = try decoder.decode(TRPCResponse<T>.self, from: data)
             return trpc.result.data.json
         } catch {
-            throw APIError.serverError(0, "Server returned an unexpected response. Please try again.")
+            let raw = String(data: data, encoding: .utf8) ?? ""
+            if raw.contains("Site Not Found") || raw.contains("not yet deployed") {
+                throw APIError.serverError(0, "Backend server is not deployed. Use Demo Mode to explore the app.")
+            }
+            throw APIError.serverError(0, "Server returned an unexpected response format.")
         }
     }
 
@@ -114,7 +118,10 @@ class AuthService {
         let body = String(data: data, encoding: .utf8) ?? ""
         let isHTML = body.contains("<html") || body.contains("<!DOCTYPE") || body.contains("<HTML")
         if isHTML {
-            throw APIError.serverError(http.statusCode, "Server returned an unexpected response. Please try again.")
+            if body.contains("Site Not Found") || body.contains("not yet deployed") || http.statusCode == 404 {
+                throw APIError.serverError(http.statusCode, "Backend server is not deployed. Use Demo Mode to explore the app.")
+            }
+            throw APIError.serverError(http.statusCode, "Server is temporarily unavailable. Use Demo Mode to explore the app.")
         }
         guard http.statusCode >= 400 else { return }
         if let trpcError = try? decoder.decode(TRPCErrorResponse.self, from: data) {

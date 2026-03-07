@@ -40,6 +40,11 @@ struct LoginView: View {
                     Spacer()
                         .frame(height: 20)
 
+                    demoModeButton
+
+                    Spacer()
+                        .frame(height: 12)
+
                     devLoginButton
 
                     Spacer()
@@ -213,6 +218,29 @@ struct LoginView: View {
                     .fontWeight(.semibold)
             }
             .font(.subheadline)
+        }
+    }
+
+    private var demoModeButton: some View {
+        Button {
+            authVM.loginDemo()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "play.circle.fill")
+                    .font(.subheadline)
+                Text("Enter Demo Mode")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .foregroundStyle(.white.opacity(0.7))
+            .background(Color.white.opacity(0.08))
+            .clipShape(.rect(cornerRadius: 14))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+            )
         }
     }
 

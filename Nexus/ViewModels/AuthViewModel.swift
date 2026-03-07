@@ -173,6 +173,14 @@ class AuthViewModel {
         isLoading = false
     }
 
+    func loginDemo() {
+        let demoUser = AuthUser(id: "demo-user", email: "demo@nexus.local", name: "Demo User")
+        currentUser = demoUser
+        cacheUser(demoUser)
+        KeychainService.save(key: tokenKey, value: "demo-token")
+        isAuthenticated = true
+    }
+
     func logout() {
         KeychainService.delete(key: tokenKey)
         UserDefaults.standard.removeObject(forKey: userKey)
