@@ -30,10 +30,10 @@ const titleMap = {
   alerts: "Alerts",
 };
 
-function setStatus(text, mode = "") {
+function setStatus(text, mode = "warn") {
   const el = document.getElementById("server-status");
   el.textContent = text;
-  el.className = `status-pill ${mode}`.trim();
+  el.className = `pill pill-${mode}`;
 }
 
 function setAuthMessage(text) {
@@ -45,10 +45,10 @@ function setAuthUser(user) {
   const el = document.getElementById("auth-status");
   if (user) {
     el.textContent = user.email;
-    el.className = "status-pill ok";
+    el.className = "pill pill-ok";
   } else {
     el.textContent = "Guest";
-    el.className = "status-pill";
+    el.className = "pill";
   }
 }
 
@@ -123,28 +123,50 @@ function escapeHtml(value) {
 function renderWarRoom() {
   const stats = document.getElementById("warroom-stats");
   const d = state.dashboard;
+  const total = d?.totalCount ?? state.subjects.length;
+  const active = d?.activeCount ?? 0;
+  const power = total > 0 ? Math.round((active / total) * 100) : 0;
   const list = [
-    ["Current Applications", d?.currentApplicationsTotal ?? 0],
-    ["Total Subjects", d?.totalCount ?? state.subjects.length],
-    ["Unread Comms", d?.unreadComms ?? 0],
-    ["Unread Emails", d?.unreadEmails ?? 0],
-    ["Urgent Actions", d?.urgentCount ?? 0],
-    ["Total Firepower", Math.round(d?.totalFirepower ?? 0)],
-    ["Monthly Burn", Math.round(d?.monthlyBurn ?? 0)],
+    ["Current Applications", d?.currentApplicationsTotal ?? 0, false],
+    ["Total Subjects", total, false],
+    ["Unread Comms", d?.unreadComms ?? 0, false],
+    ["Unread Emails", d?.unreadEmails ?? 0, false],
+    ["Urgent Actions", d?.urgentCount ?? 0, false],
+    ["Total Firepower", Math.round(d?.totalFirepower ?? 0), true],
+    ["Monthly Burn", Math.round(d?.monthlyBurn ?? 0), false],
   ];
+
   stats.innerHTML = list
-    .map(
-      ([label, value]) =>
-        `<div class="stat"><div class="label">${label}</div><div class="value">${value}</div></div>`
-    )
+    .map(([label, value, isPower]) => {
+      const cls = isPower ? "stat-value power" : "stat-value";
+      return `<div class="stat"><div class="stat-label">${label}</div><div class="${cls}">${value}</div></div>`;
+    })
     .join("");
+
+  const heroPower = document.getElementById("hero-power-value");
+  heroPower.textContent = `${power}%`;
+  heroPower.className = power >= 85 ? "rating-high" : "rating-neutral";
 
   const longest = document.getElementById("longest-active");
   if (d?.longestActive) {
-    longest.innerHTML = `<div class="row-head"><span>Longest Active</span><span class="badge warn">${escapeHtml(d.longestActive.bank)}</span></div><div class="row-meta">${escapeHtml(d.longestActive.subjectName)} · Submitted ${new Date(d.longestActive.submittedDate).toLocaleDateString()}</div>`;
+    longest.innerHTML = `<div class="row-head"><span>Longest Active Application</span><span class="badge warn">${escapeHtml(d.longestActive.bank)}</span></div><div class="meta">${escapeHtml(d.longestActive.subjectName)} · Submitted ${new Date(d.longestActive.submittedDate).toLocaleDateString()}</div>`;
   } else {
-    longest.innerHTML = `<div class="row-meta">No active application data yet.</div>`;
+    longest.innerHTML = `<div class="meta">No active application data yet.</div>`;
   }
+}
+
+function renderActivity() {
+  const rows = state.alerts
+    .slice(0, 6)
+    .map((a) => {
+      const high = a.priority === "Critical" || a.priority === "Warning";
+      const ratingClass = high ? "rating-high" : "rating-neutral";
+      return `<tr><td>${escapeHtml(a.title)}</td><td class="${ratingClass}">${escapeHtml(a.message)}</td><td>${new Date(a.timestamp).toLocaleTimeString()}</td></tr>`;
+    })
+    .join("");
+
+  document.getElementById("activity-rows").innerHTML =
+    rows || '<tr><td colspan="3" class="meta">No recent activity</td></tr>';
 }
 
 function renderSubjectOptions() {
@@ -185,11 +207,11 @@ function renderSubjects() {
     .map((s) => {
       const badgeClass = makeBadgeClass("badge", s.status);
       const checked = s.isFlagged ? "checked" : "";
-      return `<div class="row"><div class="row-head"><span>${escapeHtml(s.name)}</span><span class="${badgeClass}">${escapeHtml(s.status)}</span></div><div class="row-meta">Score ${s.healthScore} · ${escapeHtml(s.type)} · ${escapeHtml(s.assignedEmail)} · ${escapeHtml(s.assignedPhone)}</div><div class="row-actions"><button class="btn ghost" data-action="subject-edit" data-id="${s.id}" type="button">Update</button><button class="btn ghost" data-action="subject-flag" data-id="${s.id}" type="button">${checked ? "Unflag" : "Flag"}</button><button class="btn danger" data-action="subject-archive" data-id="${s.id}" type="button">Archive</button></div></div>`;
+      return `<div class="row-card"><div class="row-head"><span>${escapeHtml(s.name)}</span><span class="${badgeClass}">${escapeHtml(s.status)}</span></div><div class="meta">Score ${s.healthScore} · ${escapeHtml(s.type)} · ${escapeHtml(s.assignedEmail)} · ${escapeHtml(s.assignedPhone)}</div><div class="row-actions"><button class="btn btn-ghost" data-action="subject-edit" data-id="${s.id}" type="button">Update</button><button class="btn btn-ghost" data-action="subject-flag" data-id="${s.id}" type="button">${checked ? "Unflag" : "Flag"}</button><button class="btn btn-danger" data-action="subject-archive" data-id="${s.id}" type="button">Archive</button></div></div>`;
     })
     .join("");
 
-  document.getElementById("subjects-list").innerHTML = rows || `<div class="row-meta">No subjects found.</div>`;
+  document.getElementById("subjects-list").innerHTML = rows || `<div class="meta">No subjects found.</div>`;
 }
 
 function renderComms() {
@@ -198,12 +220,12 @@ function renderComms() {
       const unread = c.isRead ? "" : "warn";
       const readAction = c.isRead
         ? ""
-        : `<button class="btn ghost" data-action="comm-mark-read" data-id="${c.id}" type="button">Mark Read</button>`;
-      return `<div class="row"><div class="row-head"><span>${escapeHtml(c.sender)}</span><span class="badge ${unread}">${escapeHtml(c.type)}</span></div><div class="row-meta">${escapeHtml(c.entityName)} · ${escapeHtml(c.content)}</div><div class="row-meta">${new Date(c.timestamp).toLocaleString()}</div><div class="row-actions">${readAction}</div></div>`;
+        : `<button class="btn btn-ghost" data-action="comm-mark-read" data-id="${c.id}" type="button">Mark Read</button>`;
+      return `<div class="row-card"><div class="row-head"><span>${escapeHtml(c.sender)}</span><span class="badge ${unread}">${escapeHtml(c.type)}</span></div><div class="meta">${escapeHtml(c.entityName)} · ${escapeHtml(c.content)}</div><div class="meta">${new Date(c.timestamp).toLocaleString()}</div><div class="row-actions">${readAction}</div></div>`;
     })
     .join("");
 
-  document.getElementById("comms-list").innerHTML = rows || `<div class="row-meta">No communications found.</div>`;
+  document.getElementById("comms-list").innerHTML = rows || `<div class="meta">No communications found.</div>`;
 }
 
 function renderEmails() {
@@ -212,12 +234,12 @@ function renderEmails() {
       const badgeClass = e.isFlagged ? "badge warn" : "badge";
       const readAction = e.isRead
         ? ""
-        : `<button class="btn ghost" data-action="email-mark-read" data-id="${e.id}" type="button">Mark Read</button>`;
-      return `<div class="row"><div class="row-head"><span>${escapeHtml(e.subject)}</span><span class="${badgeClass}">${escapeHtml(e.category)}</span></div><div class="row-meta">${escapeHtml(e.entityName)} · ${escapeHtml(e.senderAddress)}</div><div class="row-meta">${escapeHtml(e.snippet)}</div><div class="row-actions">${readAction}<button class="btn ghost" data-action="email-toggle-flag" data-id="${e.id}" type="button">${e.isFlagged ? "Unflag" : "Flag"}</button></div></div>`;
+        : `<button class="btn btn-ghost" data-action="email-mark-read" data-id="${e.id}" type="button">Mark Read</button>`;
+      return `<div class="row-card"><div class="row-head"><span>${escapeHtml(e.subject)}</span><span class="${badgeClass}">${escapeHtml(e.category)}</span></div><div class="meta">${escapeHtml(e.entityName)} · ${escapeHtml(e.senderAddress)}</div><div class="meta">${escapeHtml(e.snippet)}</div><div class="row-actions">${readAction}<button class="btn btn-ghost" data-action="email-toggle-flag" data-id="${e.id}" type="button">${e.isFlagged ? "Unflag" : "Flag"}</button></div></div>`;
     })
     .join("");
 
-  document.getElementById("emails-list").innerHTML = rows || `<div class="row-meta">No emails found.</div>`;
+  document.getElementById("emails-list").innerHTML = rows || `<div class="meta">No emails found.</div>`;
 }
 
 function renderAlerts() {
@@ -226,16 +248,17 @@ function renderAlerts() {
       const badgeClass = makeBadgeClass("badge", a.priority);
       const readAction = a.isRead
         ? ""
-        : `<button class="btn ghost" data-action="alert-mark-read" data-id="${a.id}" type="button">Mark Read</button>`;
-      return `<div class="row"><div class="row-head"><span>${escapeHtml(a.title)}</span><span class="${badgeClass}">${escapeHtml(a.priority)}</span></div><div class="row-meta">${escapeHtml(a.entityName ?? "Global")} · ${escapeHtml(a.type)}</div><div class="row-meta">${escapeHtml(a.message)}</div><div class="row-actions">${readAction}</div></div>`;
+        : `<button class="btn btn-ghost" data-action="alert-mark-read" data-id="${a.id}" type="button">Mark Read</button>`;
+      return `<div class="row-card"><div class="row-head"><span>${escapeHtml(a.title)}</span><span class="${badgeClass}">${escapeHtml(a.priority)}</span></div><div class="meta">${escapeHtml(a.entityName ?? "Global")} · ${escapeHtml(a.type)}</div><div class="meta">${escapeHtml(a.message)}</div><div class="row-actions">${readAction}</div></div>`;
     })
     .join("");
 
-  document.getElementById("alerts-list").innerHTML = rows || `<div class="row-meta">No alerts found.</div>`;
+  document.getElementById("alerts-list").innerHTML = rows || `<div class="meta">No alerts found.</div>`;
 }
 
 function renderAll() {
   renderWarRoom();
+  renderActivity();
   renderSubjectOptions();
   renderSubjects();
   renderComms();
@@ -282,7 +305,7 @@ async function loadAllData() {
 }
 
 async function refreshAll() {
-  setStatus("Syncing");
+  setStatus("Syncing", "warn");
   try {
     await loadAllData();
     setStatus("Live", "ok");
@@ -377,7 +400,7 @@ async function updateSubjectPrompt(id) {
   const monthlyBurn = prompt("Monthly Burn", String(subject.monthlyBurn)) ?? String(subject.monthlyBurn);
   const notes = prompt("Notes", subject.notes) ?? subject.notes;
 
-  const payload = {
+  await trpcMutation("entities.update", {
     id,
     name,
     status,
@@ -385,9 +408,7 @@ async function updateSubjectPrompt(id) {
     creditLimit: parseNumber(creditLimit),
     monthlyBurn: parseNumber(monthlyBurn),
     notes,
-  };
-
-  await trpcMutation("entities.update", payload);
+  });
   await refreshAll();
 }
 
@@ -477,6 +498,8 @@ function attachEventHandlers() {
   document.getElementById("comm-create-form").addEventListener("submit", handleCreateComm);
 
   document.getElementById("btn-refresh-all").addEventListener("click", refreshAll);
+  document.getElementById("btn-refresh-fab").addEventListener("click", refreshAll);
+
   document.getElementById("btn-me").addEventListener("click", async () => {
     try {
       const me = await trpcQuery("auth.me");
@@ -518,6 +541,7 @@ function attachEventHandlers() {
     state.filters.alerts.type = String(document.getElementById("alerts-filter-type").value || "");
     await loadAlerts();
     renderAlerts();
+    renderActivity();
   });
 
   document.getElementById("alerts-mark-all").addEventListener("click", async () => {

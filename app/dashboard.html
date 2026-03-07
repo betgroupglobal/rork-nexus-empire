@@ -3,61 +3,93 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Nexus War Room</title>
+    <title>Nexus Empire</title>
     <link rel="stylesheet" href="/ui/styles.css" />
   </head>
   <body>
-    <div class="bg-orb bg-orb-a"></div>
-    <div class="bg-orb bg-orb-b"></div>
-    <div class="app-shell">
+    <div class="page-shell">
       <aside class="side-nav">
-        <div class="brand">Nexus</div>
-        <button class="tab-btn active" data-tab="warroom">War Room</button>
-        <button class="tab-btn" data-tab="subjects">Subjects</button>
-        <button class="tab-btn" data-tab="comms">Comms</button>
-        <button class="tab-btn" data-tab="email">Email</button>
-        <button class="tab-btn" data-tab="alerts">Alerts</button>
+        <div class="brand">Nexus Empire</div>
+        <button class="tab-btn active" data-tab="warroom" type="button">War Room</button>
+        <button class="tab-btn" data-tab="subjects" type="button">Subjects</button>
+        <button class="tab-btn" data-tab="comms" type="button">Comms</button>
+        <button class="tab-btn" data-tab="email" type="button">Email</button>
+        <button class="tab-btn" data-tab="alerts" type="button">Alerts</button>
       </aside>
 
       <main class="main-view">
         <header class="topbar">
-          <h1 id="tab-title">War Room</h1>
+          <div>
+            <h1 id="tab-title">War Room</h1>
+            <p class="subtitle">Simple workflow • precise signal • purposeful action</p>
+          </div>
           <div class="topbar-right">
-            <div id="auth-status" class="status-pill">Guest</div>
-            <div id="server-status" class="status-pill">Connecting</div>
+            <div id="auth-status" class="pill">Guest</div>
+            <div id="server-status" class="pill pill-warn">Connecting</div>
           </div>
         </header>
 
         <section class="panel active" id="panel-warroom">
           <div class="card stack">
-            <h2>Access</h2>
+            <h2>Credentials</h2>
             <form id="login-form" class="form-grid">
               <input name="email" type="email" placeholder="Email" required />
               <input name="password" type="password" placeholder="Password" required />
-              <button class="btn" type="submit">Login</button>
+              <button class="btn btn-primary" type="submit">Login</button>
             </form>
             <form id="register-form" class="form-grid">
               <input name="name" type="text" placeholder="Name" required />
               <input name="email" type="email" placeholder="Email" required />
               <input name="password" type="password" placeholder="Password (min 6)" required />
-              <button class="btn" type="submit">Register</button>
+              <button class="btn btn-primary" type="submit">Register</button>
             </form>
-            <div class="row-actions">
-              <button class="btn ghost" id="btn-refresh-all" type="button">Refresh All</button>
-              <button class="btn ghost" id="btn-me" type="button">Who Am I</button>
-              <button class="btn danger" id="btn-logout" type="button">Logout</button>
+            <div class="action-row">
+              <button class="btn btn-ghost" id="btn-refresh-all" type="button">Refresh</button>
+              <button class="btn btn-ghost" id="btn-me" type="button">Who Am I</button>
+              <button class="btn btn-danger" id="btn-logout" type="button">Logout</button>
             </div>
-            <div class="row-meta" id="auth-message">Use login/register to enable authenticated route checks.</div>
+            <div class="meta" id="auth-message">Use login/register for authenticated checks.</div>
           </div>
 
-          <div class="stats-grid" id="warroom-stats"></div>
-          <div class="card" id="longest-active"></div>
+          <div class="hero-card">
+            <div>
+              <div class="hero-label">Current Status</div>
+              <h2 class="hero-title">Empire is thriving</h2>
+            </div>
+            <div class="hero-power">
+              <div id="hero-power-value" class="rating-high">0%</div>
+              <div class="meta" id="hero-power-sub">of maximum potential reached</div>
+            </div>
+          </div>
+
+          <div class="stat-grid" id="warroom-stats"></div>
+
+          <div class="card stack">
+            <div id="longest-active" class="meta"></div>
+          </div>
+
+          <div class="table-card">
+            <div class="table-head">
+              <h2>Recent Activity</h2>
+              <div class="meta">Last 30 minutes</div>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Event</th>
+                  <th>Impact</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="activity-rows"></tbody>
+            </table>
+          </div>
         </section>
 
         <section class="panel" id="panel-subjects">
           <div class="card stack">
             <h2>Create Subject</h2>
-            <form id="subject-create-form" class="form-grid four">
+            <form id="subject-create-form" class="form-grid form-grid-wide">
               <input name="name" type="text" placeholder="Name" required />
               <select name="type">
                 <option value="Person">Person</option>
@@ -68,13 +100,13 @@
               <input name="assignedPhone" type="text" placeholder="Assigned Phone" required />
               <input name="assignedEmail" type="email" placeholder="Assigned Email" required />
               <input name="notes" type="text" placeholder="Notes" />
-              <button class="btn" type="submit">Create</button>
+              <button class="btn btn-primary" type="submit">Create</button>
             </form>
           </div>
 
           <div class="card stack">
-            <h2>Filters</h2>
-            <div class="form-grid four">
+            <h2>Workflow Filter</h2>
+            <div class="form-grid">
               <input id="subjects-search" type="text" placeholder="Search subject" />
               <select id="subjects-status">
                 <option value="">Any status</option>
@@ -84,17 +116,17 @@
                 <option value="At Risk">At Risk</option>
                 <option value="Archived">Archived</option>
               </select>
-              <button class="btn ghost" id="subjects-filter-apply" type="button">Apply</button>
+              <button class="btn btn-ghost" id="subjects-filter-apply" type="button">Apply</button>
             </div>
           </div>
 
-          <div class="card-table" id="subjects-list"></div>
+          <div class="list-grid" id="subjects-list"></div>
         </section>
 
         <section class="panel" id="panel-comms">
           <div class="card stack">
             <h2>Create Communication</h2>
-            <form id="comm-create-form" class="form-grid four">
+            <form id="comm-create-form" class="form-grid form-grid-wide">
               <select name="subjectId" id="comm-subject"></select>
               <select name="type">
                 <option value="SMS">SMS</option>
@@ -104,15 +136,15 @@
               <input name="sender" type="text" placeholder="Sender" required />
               <input name="phoneNumber" type="text" placeholder="Phone Number" required />
               <input name="content" type="text" placeholder="Content" required />
-              <input name="duration" type="number" min="0" placeholder="Duration seconds (optional)" />
-              <input name="transcription" type="text" placeholder="Transcription (optional)" />
-              <button class="btn" type="submit">Create</button>
+              <input name="duration" type="number" min="0" placeholder="Duration seconds" />
+              <input name="transcription" type="text" placeholder="Transcription" />
+              <button class="btn btn-primary" type="submit">Create</button>
             </form>
           </div>
 
           <div class="card stack">
-            <h2>Filters</h2>
-            <div class="form-grid four">
+            <h2>Filter</h2>
+            <div class="form-grid">
               <select id="comms-filter-subject"></select>
               <select id="comms-filter-type">
                 <option value="">Any type</option>
@@ -120,17 +152,17 @@
                 <option value="Call">Call</option>
                 <option value="Voicemail">Voicemail</option>
               </select>
-              <button class="btn ghost" id="comms-filter-apply" type="button">Apply</button>
+              <button class="btn btn-ghost" id="comms-filter-apply" type="button">Apply</button>
             </div>
           </div>
 
-          <div class="card-table" id="comms-list"></div>
+          <div class="list-grid" id="comms-list"></div>
         </section>
 
         <section class="panel" id="panel-email">
           <div class="card stack">
-            <h2>Filters</h2>
-            <div class="form-grid four">
+            <h2>Filter</h2>
+            <div class="form-grid">
               <select id="emails-filter-subject"></select>
               <select id="emails-filter-category">
                 <option value="">Any category</option>
@@ -140,17 +172,17 @@
                 <option value="ATO Notice">ATO Notice</option>
                 <option value="General">General</option>
               </select>
-              <button class="btn ghost" id="emails-filter-apply" type="button">Apply</button>
+              <button class="btn btn-ghost" id="emails-filter-apply" type="button">Apply</button>
             </div>
           </div>
 
-          <div class="card-table" id="emails-list"></div>
+          <div class="list-grid" id="emails-list"></div>
         </section>
 
         <section class="panel" id="panel-alerts">
           <div class="card stack">
-            <h2>Filters</h2>
-            <div class="form-grid four">
+            <h2>Filter</h2>
+            <div class="form-grid">
               <select id="alerts-filter-type">
                 <option value="">Any type</option>
                 <option value="Stalled App">Stalled App</option>
@@ -162,15 +194,18 @@
                 <option value="Application">Application</option>
                 <option value="ClearScore">ClearScore</option>
               </select>
-              <button class="btn ghost" id="alerts-filter-apply" type="button">Apply</button>
-              <button class="btn danger" id="alerts-mark-all" type="button">Mark All Read</button>
+              <button class="btn btn-ghost" id="alerts-filter-apply" type="button">Apply</button>
+              <button class="btn btn-danger" id="alerts-mark-all" type="button">Mark All Read</button>
             </div>
           </div>
 
-          <div class="card-table" id="alerts-list"></div>
+          <div class="list-grid" id="alerts-list"></div>
         </section>
       </main>
     </div>
+
+    <button class="fab" type="button" id="btn-refresh-fab">Expand Nexus</button>
+
     <script type="module" src="/ui/app.js"></script>
   </body>
 </html>
