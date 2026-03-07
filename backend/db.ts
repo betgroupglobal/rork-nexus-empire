@@ -1,4 +1,4 @@
-import { z } from "zod/v4";
+import { z } from "zod";
 
 export const EntityTypeEnum = z.enum(["Person", "Ltd", "Trust"]);
 export const EntityStatusEnum = z.enum(["Active", "Dormant", "At Risk", "Archived"]);

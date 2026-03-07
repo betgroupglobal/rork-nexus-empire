@@ -1,4 +1,4 @@
-import { z } from "zod/v4";
+import { z } from "zod";
 import { publicProcedure, createTRPCRouter } from "../create-context";
 import { TRPCError } from "@trpc/server";
 
