@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nexus War Room</title>
+    <link rel="stylesheet" href="/ui/styles.css" />
+  </head>
+  <body>
+    <div class="bg-orb bg-orb-a"></div>
+    <div class="bg-orb bg-orb-b"></div>
+    <div class="app-shell">
+      <aside class="side-nav">
+        <div class="brand">Nexus</div>
+        <button class="tab-btn active" data-tab="warroom">War Room</button>
+        <button class="tab-btn" data-tab="subjects">Subjects</button>
+        <button class="tab-btn" data-tab="comms">Comms</button>
+        <button class="tab-btn" data-tab="email">Email</button>
+        <button class="tab-btn" data-tab="alerts">Alerts</button>
+      </aside>
+      <main class="main-view">
+        <header class="topbar">
+          <h1 id="tab-title">War Room</h1>
+          <div id="server-status" class="status-pill">Connecting</div>
+        </header>
+
+        <section class="panel active" id="panel-warroom">
+          <div class="stats-grid" id="warroom-stats"></div>
+          <div class="card" id="longest-active"></div>
+        </section>
+
+        <section class="panel" id="panel-subjects">
+          <div class="card-table" id="subjects-list"></div>
+        </section>
+
+        <section class="panel" id="panel-comms">
+          <div class="card-table" id="comms-list"></div>
+        </section>
+
+        <section class="panel" id="panel-email">
+          <div class="card-table" id="emails-list"></div>
+        </section>
+
+        <section class="panel" id="panel-alerts">
+          <div class="card-table" id="alerts-list"></div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/ui/app.js"></script>
+  </body>
+</html>
