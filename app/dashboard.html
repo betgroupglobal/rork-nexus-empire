@@ -9,19 +9,20 @@
   <body>
     <div class="app-shell">
       <aside class="sidebar">
-        <div class="brand-lockup">
+        <div class="brand-block">
           <div class="brand-mark">NE</div>
           <div>
             <div class="eyebrow">Swift App + Web Platform</div>
             <div class="brand-name">Nexus Empire</div>
+            <div class="brand-copy">A lighter command surface for subjects, comms, mailboxes and action queues.</div>
           </div>
         </div>
 
-        <div class="sidebar-card">
-          <div class="sidebar-card-label">Workflow</div>
-          <div class="sidebar-card-title">One surface for subjects, communications, inboxes and action queues.</div>
-          <div class="sidebar-card-note">Clean signals, deliberate colour, and fast credential access.</div>
-        </div>
+        <section class="sidebar-panel accent-panel">
+          <div class="panel-label">Operating model</div>
+          <div class="panel-title">Credentials first, then signal triage, then action.</div>
+          <div class="panel-copy">Built to feel calm and exact, with accent colour used only where strength or urgency should stand out.</div>
+        </section>
 
         <nav class="nav-stack">
           <button class="tab-btn active" data-tab="warroom" type="button">
@@ -46,129 +47,105 @@
           </button>
         </nav>
 
-        <div class="sidebar-foot">
-          <div class="sidebar-stat">
-            <span class="sidebar-stat-label">Intentional rating</span>
-            <span class="sidebar-stat-value rating-high">Green = strongest signal</span>
+        <section class="sidebar-panel tone-panel">
+          <div class="panel-label">Colour intent</div>
+          <div class="tone-list">
+            <div class="tone-item"><span class="tone-dot tone-dot-strong"></span><span>Green signals stronger rating or value.</span></div>
+            <div class="tone-item"><span class="tone-dot tone-dot-accent"></span><span>Blue anchors navigation and primary actions.</span></div>
+            <div class="tone-item"><span class="tone-dot tone-dot-warn"></span><span>Warm tones are reserved for pressure and review.</span></div>
           </div>
-        </div>
+        </section>
       </aside>
 
       <main class="workspace">
         <header class="workspace-header">
           <div>
-            <div class="eyebrow">Nexus command platform</div>
+            <div class="eyebrow">Nexus command centre</div>
             <h1 id="tab-title">War Room</h1>
-            <p class="subtitle" id="tab-subtitle">Overview of live power, credentials and next actions.</p>
+            <p class="subtitle" id="tab-subtitle">Overview of live health, credentials, pressure points and next action.</p>
           </div>
-          <div class="header-cluster">
+          <div class="header-statuses">
             <div id="auth-status" class="pill">Guest</div>
             <div id="server-status" class="pill pill-warn">Connecting</div>
           </div>
         </header>
 
         <section class="panel active" id="panel-warroom">
-          <div class="hero-panel">
+          <section class="hero-ribbon">
             <div class="hero-copy">
-              <div class="eyebrow">Live overview</div>
-              <h2 class="hero-title">Simple command flow for credentials, subjects, comms and mailboxes.</h2>
-              <p class="hero-text">A lighter, more precise layout with a deliberate gradient, clear hierarchy, and action-first workbench.</p>
+              <div class="eyebrow">Overview</div>
+              <h2 class="hero-title">A cleaner command workflow with deliberate signal, credential control and clear next steps.</h2>
+              <p class="hero-text">The experience is structured to start with identity, move into pressure points, and then flow into the live records that need attention.</p>
               <div class="hero-actions">
                 <button class="btn btn-primary" id="btn-refresh-all" type="button">Refresh workspace</button>
                 <button class="btn btn-ghost" id="btn-me" type="button">Who am I</button>
+                <button class="btn btn-ghost" id="btn-logout" type="button">Logout</button>
               </div>
             </div>
-            <div class="hero-meter">
-              <div class="hero-meter-label">Operational power</div>
-              <div id="hero-power-value" class="hero-meter-value rating-high">0%</div>
+            <div class="hero-power-card">
+              <div class="hero-power-label">Operational power</div>
+              <div id="hero-power-value" class="hero-power-value rating-high">0%</div>
               <div class="meta" id="hero-power-sub">of maximum potential reached</div>
             </div>
-          </div>
+          </section>
 
-          <div class="overview-grid">
-            <section class="module-card credential-card">
-              <div class="module-head">
+          <section class="workflow-grid">
+            <article class="workspace-card credential-card">
+              <div class="card-head">
                 <div>
-                  <div class="module-label">Credential desk</div>
+                  <div class="card-label">Credential desk</div>
                   <h2>Access and session</h2>
                 </div>
-                <div class="module-note" id="auth-message">Use login or register for authenticated checks.</div>
+                <div class="card-note" id="auth-message">Use login or register for authenticated checks.</div>
               </div>
-              <div class="credential-stack">
-                <form id="login-form" class="form-grid">
+              <div class="form-stack">
+                <form id="login-form" class="form-grid compact-grid">
                   <input name="email" type="email" placeholder="Email" required />
                   <input name="password" type="password" placeholder="Password" required />
                   <button class="btn btn-primary" type="submit">Login</button>
                 </form>
-                <form id="register-form" class="form-grid">
+                <form id="register-form" class="form-grid compact-grid">
                   <input name="name" type="text" placeholder="Name" required />
                   <input name="email" type="email" placeholder="Email" required />
                   <input name="password" type="password" placeholder="Password (min 6)" required />
                   <button class="btn btn-soft" type="submit">Register</button>
                 </form>
               </div>
-            </section>
+            </article>
 
-            <section class="module-card command-card">
-              <div class="module-head">
+            <article class="workspace-card queue-card">
+              <div class="card-head">
                 <div>
-                  <div class="module-label">Workflow</div>
-                  <h2>Command deck</h2>
+                  <div class="card-label">Priority queue</div>
+                  <h2>Immediate movement</h2>
                 </div>
-                <div class="module-note">Fast actions for session control</div>
+                <button class="btn btn-ghost" id="btn-refresh-fab" type="button">Sync all</button>
               </div>
-              <div class="action-grid">
-                <button class="btn btn-ghost" id="btn-refresh-fab" type="button">Sync all data</button>
-                <button class="btn btn-ghost" id="btn-logout" type="button">Logout</button>
-              </div>
-              <div class="intent-list">
-                <div class="intent-row">
-                  <span class="intent-index">01</span>
-                  <div>
-                    <div class="intent-title">Authenticate</div>
-                    <div class="meta">Open a working session and verify identity.</div>
-                  </div>
-                </div>
-                <div class="intent-row">
-                  <span class="intent-index">02</span>
-                  <div>
-                    <div class="intent-title">Review the queue</div>
-                    <div class="meta">Unread communications, flagged mail, and critical alerts surface first.</div>
-                  </div>
-                </div>
-                <div class="intent-row">
-                  <span class="intent-index">03</span>
-                  <div>
-                    <div class="intent-title">Act inside the roster</div>
-                    <div class="meta">Update subjects, archive noise, and keep active applications moving.</div>
-                  </div>
-                </div>
-              </div>
-            </section>
+              <div id="priority-queue" class="queue-stack"></div>
+            </article>
 
-            <section class="module-card pipeline-card">
-              <div class="module-head">
+            <article class="workspace-card spotlight-card-wrap">
+              <div class="card-head">
                 <div>
-                  <div class="module-label">Priority pipeline</div>
-                  <h2>What needs attention now</h2>
+                  <div class="card-label">Pipeline</div>
+                  <h2>Longest-running application</h2>
                 </div>
-                <div class="module-note">Derived from live data</div>
+                <div class="card-note">Oldest in-flight record</div>
               </div>
-              <div id="longest-active" class="spotlight-card"></div>
-              <div id="priority-queue" class="stack"></div>
-            </section>
-          </div>
+              <div id="longest-active"></div>
+            </article>
+          </section>
 
-          <div class="stat-grid" id="warroom-stats"></div>
+          <section class="metric-grid" id="warroom-stats"></section>
 
-          <div class="content-grid two-column">
-            <section class="table-card">
-              <div class="module-head">
+          <section class="insight-grid">
+            <article class="workspace-card table-card">
+              <div class="card-head">
                 <div>
-                  <div class="module-label">Signal log</div>
+                  <div class="card-label">Signal log</div>
                   <h2>Recent activity</h2>
                 </div>
-                <div class="module-note">Latest alerts and movement</div>
+                <div class="card-note">Last movement across the platform</div>
               </div>
               <table>
                 <thead>
@@ -180,40 +157,41 @@
                 </thead>
                 <tbody id="activity-rows"></tbody>
               </table>
-            </section>
+            </article>
 
-            <section class="module-card">
-              <div class="module-head">
+            <article class="workspace-card">
+              <div class="card-head">
                 <div>
-                  <div class="module-label">Focus roster</div>
-                  <h2>Strongest subject positions</h2>
+                  <div class="card-label">Focus roster</div>
+                  <h2>Best-positioned subjects</h2>
                 </div>
-                <div class="module-note">Health and available capacity</div>
+                <div class="card-note">Strongest records by health and headroom</div>
               </div>
-              <div id="focus-roster" class="stack"></div>
-            </section>
-          </div>
+              <div id="focus-roster" class="focus-list"></div>
+            </article>
+          </section>
         </section>
 
         <section class="panel" id="panel-subjects">
           <div class="section-head">
             <div>
               <div class="eyebrow">Subjects</div>
-              <h2>Roster and workflow</h2>
+              <h2>Roster workflow</h2>
+              <p class="subtitle">Create, refine and act on records in a cleaner Airtable-style desk.</p>
             </div>
             <div class="summary-pill" id="subjects-summary">0 subjects</div>
           </div>
 
-          <div class="content-grid split-layout">
-            <section class="module-card">
-              <div class="module-head">
+          <section class="section-grid">
+            <article class="workspace-card">
+              <div class="card-head">
                 <div>
-                  <div class="module-label">Create</div>
+                  <div class="card-label">Create</div>
                   <h2>Add subject</h2>
                 </div>
-                <div class="module-note">Simple credential and workflow entry</div>
+                <div class="card-note">Minimal credential capture</div>
               </div>
-              <form id="subject-create-form" class="form-grid form-grid-wide">
+              <form id="subject-create-form" class="form-grid wide-grid">
                 <input name="name" type="text" placeholder="Name" required />
                 <select name="type">
                   <option value="Person">Person</option>
@@ -226,17 +204,17 @@
                 <input name="notes" type="text" placeholder="Notes" />
                 <button class="btn btn-primary" type="submit">Create subject</button>
               </form>
-            </section>
+            </article>
 
-            <section class="module-card">
-              <div class="module-head">
+            <article class="workspace-card">
+              <div class="card-head">
                 <div>
-                  <div class="module-label">Filter</div>
-                  <h2>Refine roster</h2>
+                  <div class="card-label">Refine</div>
+                  <h2>Filter roster</h2>
                 </div>
-                <div class="module-note">Search by name, email, phone or status</div>
+                <div class="card-note">Search by name, email, phone or status</div>
               </div>
-              <div class="form-grid">
+              <div class="form-grid compact-grid">
                 <input id="subjects-search" type="text" placeholder="Search subject" />
                 <select id="subjects-status">
                   <option value="">Any status</option>
@@ -248,39 +226,41 @@
                 </select>
                 <button class="btn btn-ghost" id="subjects-filter-apply" type="button">Apply filters</button>
               </div>
-            </section>
-          </div>
+            </article>
+          </section>
 
-          <section class="collection-shell">
-            <div class="collection-head">
+          <article class="workspace-card data-surface">
+            <div class="card-head">
               <div>
-                <div class="module-label">Roster</div>
+                <div class="card-label">Roster</div>
                 <h2>Subject records</h2>
               </div>
+              <div class="card-note">High-rating rows are clearer and calmer</div>
             </div>
-            <div class="list-grid" id="subjects-list"></div>
-          </section>
+            <div id="subjects-list" class="record-list"></div>
+          </article>
         </section>
 
         <section class="panel" id="panel-comms">
           <div class="section-head">
             <div>
               <div class="eyebrow">Communications</div>
-              <h2>Message and call activity</h2>
+              <h2>Call and message desk</h2>
+              <p class="subtitle">Capture new interaction and keep unread contact pressure visible.</p>
             </div>
             <div class="summary-pill" id="comms-summary">0 items</div>
           </div>
 
-          <div class="content-grid split-layout">
-            <section class="module-card">
-              <div class="module-head">
+          <section class="section-grid">
+            <article class="workspace-card">
+              <div class="card-head">
                 <div>
-                  <div class="module-label">Create</div>
+                  <div class="card-label">Capture</div>
                   <h2>Log communication</h2>
                 </div>
-                <div class="module-note">Capture calls, SMS and voicemail</div>
+                <div class="card-note">SMS, calls and voicemail</div>
               </div>
-              <form id="comm-create-form" class="form-grid form-grid-wide">
+              <form id="comm-create-form" class="form-grid wide-grid">
                 <select name="subjectId" id="comm-subject"></select>
                 <select name="type">
                   <option value="SMS">SMS</option>
@@ -294,17 +274,17 @@
                 <input name="transcription" type="text" placeholder="Transcription" />
                 <button class="btn btn-primary" type="submit">Create communication</button>
               </form>
-            </section>
+            </article>
 
-            <section class="module-card">
-              <div class="module-head">
+            <article class="workspace-card">
+              <div class="card-head">
                 <div>
-                  <div class="module-label">Filter</div>
-                  <h2>Inbox focus</h2>
+                  <div class="card-label">Refine</div>
+                  <h2>Filter queue</h2>
                 </div>
-                <div class="module-note">Scope communications by subject or type</div>
+                <div class="card-note">Scope by subject or type</div>
               </div>
-              <div class="form-grid">
+              <div class="form-grid compact-grid">
                 <select id="comms-filter-subject"></select>
                 <select id="comms-filter-type">
                   <option value="">Any type</option>
@@ -314,18 +294,19 @@
                 </select>
                 <button class="btn btn-ghost" id="comms-filter-apply" type="button">Apply filters</button>
               </div>
-            </section>
-          </div>
+            </article>
+          </section>
 
-          <section class="collection-shell">
-            <div class="collection-head">
+          <article class="workspace-card data-surface">
+            <div class="card-head">
               <div>
-                <div class="module-label">Queue</div>
+                <div class="card-label">Queue</div>
                 <h2>Communication records</h2>
               </div>
+              <div class="card-note">Unread contact is deliberately highlighted</div>
             </div>
-            <div class="list-grid" id="comms-list"></div>
-          </section>
+            <div id="comms-list" class="record-list"></div>
+          </article>
         </section>
 
         <section class="panel" id="panel-email">
@@ -333,20 +314,21 @@
             <div>
               <div class="eyebrow">Email</div>
               <h2>Mailbox workflow</h2>
+              <p class="subtitle">A lighter inbox surface with stronger attention on flagged or valuable items.</p>
             </div>
             <div class="summary-pill" id="emails-summary">0 emails</div>
           </div>
 
-          <div class="content-grid split-layout">
-            <section class="module-card">
-              <div class="module-head">
+          <section class="section-grid">
+            <article class="workspace-card">
+              <div class="card-head">
                 <div>
-                  <div class="module-label">Filter</div>
+                  <div class="card-label">Refine</div>
                   <h2>Focus the mailbox</h2>
                 </div>
-                <div class="module-note">Review by subject and email category</div>
+                <div class="card-note">Filter by subject and category</div>
               </div>
-              <div class="form-grid">
+              <div class="form-grid compact-grid">
                 <select id="emails-filter-subject"></select>
                 <select id="emails-filter-category">
                   <option value="">Any category</option>
@@ -358,29 +340,34 @@
                 </select>
                 <button class="btn btn-ghost" id="emails-filter-apply" type="button">Apply filters</button>
               </div>
-            </section>
+            </article>
 
-            <section class="module-card subtle-gradient">
-              <div class="module-head">
+            <article class="workspace-card accent-soft-panel">
+              <div class="card-head">
                 <div>
-                  <div class="module-label">Meaning</div>
-                  <h2>Mail signal</h2>
+                  <div class="card-label">Reading model</div>
+                  <h2>Mail signal guide</h2>
                 </div>
-                <div class="module-note">Flagged mail is surfaced for deliberate review.</div>
+                <div class="card-note">Purposeful colour, not decoration</div>
               </div>
-              <div class="meta">Green and blue highlights indicate stronger opportunity or value; warm tones suggest review pressure.</div>
-            </section>
-          </div>
+              <div class="guide-list">
+                <div class="guide-row"><span class="mini-badge success">Value</span><span>Messages with clear financial opportunity or strength.</span></div>
+                <div class="guide-row"><span class="mini-badge warn">Review</span><span>Flagged or unread pressure that needs triage.</span></div>
+                <div class="guide-row"><span class="mini-badge">Base</span><span>Everything else stays quiet and easy to scan.</span></div>
+              </div>
+            </article>
+          </section>
 
-          <section class="collection-shell">
-            <div class="collection-head">
+          <article class="workspace-card data-surface">
+            <div class="card-head">
               <div>
-                <div class="module-label">Mailbox</div>
+                <div class="card-label">Mailbox</div>
                 <h2>Email records</h2>
               </div>
+              <div class="card-note">Flagged and unread mail stays near the top</div>
             </div>
-            <div class="list-grid" id="emails-list"></div>
-          </section>
+            <div id="emails-list" class="record-list"></div>
+          </article>
         </section>
 
         <section class="panel" id="panel-alerts">
@@ -388,20 +375,21 @@
             <div>
               <div class="eyebrow">Alerts</div>
               <h2>Action queue</h2>
+              <p class="subtitle">Keep urgency precise, uncluttered and easy to clear.</p>
             </div>
             <div class="summary-pill" id="alerts-summary">0 alerts</div>
           </div>
 
-          <div class="content-grid split-layout">
-            <section class="module-card">
-              <div class="module-head">
+          <section class="section-grid">
+            <article class="workspace-card">
+              <div class="card-head">
                 <div>
-                  <div class="module-label">Filter</div>
-                  <h2>Prioritise the queue</h2>
+                  <div class="card-label">Refine</div>
+                  <h2>Filter alerts</h2>
                 </div>
-                <div class="module-note">Surface only what matters right now</div>
+                <div class="card-note">Reduce noise and focus the queue</div>
               </div>
-              <div class="form-grid">
+              <div class="form-grid compact-grid">
                 <select id="alerts-filter-type">
                   <option value="">Any type</option>
                   <option value="Stalled App">Stalled App</option>
@@ -416,29 +404,34 @@
                 <button class="btn btn-ghost" id="alerts-filter-apply" type="button">Apply filters</button>
                 <button class="btn btn-danger" id="alerts-mark-all" type="button">Mark all read</button>
               </div>
-            </section>
+            </article>
 
-            <section class="module-card subtle-gradient">
-              <div class="module-head">
+            <article class="workspace-card accent-soft-panel">
+              <div class="card-head">
                 <div>
-                  <div class="module-label">Priority</div>
-                  <h2>Deliberate colour map</h2>
+                  <div class="card-label">Priority logic</div>
+                  <h2>Urgency with restraint</h2>
                 </div>
-                <div class="module-note">Critical is warm, strong is green, neutral stays quiet.</div>
+                <div class="card-note">Warm tones only where action is immediate</div>
               </div>
-              <div class="meta">The queue is designed to feel light and controlled, with bold accents used only where urgency or strength should stand out.</div>
-            </section>
-          </div>
+              <div class="guide-list">
+                <div class="guide-row"><span class="mini-badge critical">Critical</span><span>Fast intervention needed.</span></div>
+                <div class="guide-row"><span class="mini-badge warn">Warning</span><span>Watch closely and resolve soon.</span></div>
+                <div class="guide-row"><span class="mini-badge success">Info</span><span>Healthy or low-pressure signal.</span></div>
+              </div>
+            </article>
+          </section>
 
-          <section class="collection-shell">
-            <div class="collection-head">
+          <article class="workspace-card data-surface">
+            <div class="card-head">
               <div>
-                <div class="module-label">Queue</div>
+                <div class="card-label">Queue</div>
                 <h2>Alert records</h2>
               </div>
+              <div class="card-note">Prioritised for clearer scanning</div>
             </div>
-            <div class="list-grid" id="alerts-list"></div>
-          </section>
+            <div id="alerts-list" class="record-list"></div>
+          </article>
         </section>
       </main>
     </div>
