@@ -95,19 +95,9 @@ class NexusAPIService {
         throw APIError.serverError(http.statusCode, "Server error (\(http.statusCode)). Please try again.")
     }
 
-    func fetchCommunications() async throws -> [Communication] {
-        let dtos: [CommunicationDTO] = try await performQuery(procedure: "communications.list")
-        return dtos.map { $0.toModel() }
-    }
-
     func markCommRead(id: String) async throws -> Communication {
         let dto: CommunicationDTO = try await performMutation(procedure: "communications.markRead", input: IDInput(id: id))
         return dto.toModel()
-    }
-
-    func fetchEmails() async throws -> [EmailMessage] {
-        let dtos: [EmailDTO] = try await performQuery(procedure: "emails.list")
-        return dtos.map { $0.toModel() }
     }
 
     func markEmailRead(id: String) async throws -> EmailMessage {
@@ -118,11 +108,6 @@ class NexusAPIService {
     func toggleEmailFlag(id: String) async throws -> EmailMessage {
         let dto: EmailDTO = try await performMutation(procedure: "emails.toggleFlag", input: IDInput(id: id))
         return dto.toModel()
-    }
-
-    func fetchAlerts() async throws -> [NexusAlert] {
-        let dtos: [AlertDTO] = try await performQuery(procedure: "alerts.list")
-        return dtos.map { $0.toModel() }
     }
 
     func markAlertRead(id: String) async throws -> NexusAlert {
@@ -141,6 +126,84 @@ class NexusAPIService {
 
     func fetchDashboard() async throws -> DashboardResponse {
         try await performQuery(procedure: "entities.dashboard")
+    }
+
+    func createSubject(name: String, type: SubjectType, creditLimit: Double, assignedPhone: String, assignedEmail: String, notes: String?) async throws -> Subject {
+        let input = CreateEntityInput(
+            name: name,
+            type: type.rawValue,
+            creditLimit: creditLimit,
+            assignedPhone: assignedPhone,
+            assignedEmail: assignedEmail,
+            notes: notes
+        )
+        let dto: EntityDTO = try await performMutation(procedure: "entities.create", input: input)
+        return dto.toModel()
+    }
+
+    func updateSubject(_ input: UpdateEntityInput) async throws -> Subject {
+        let dto: EntityDTO = try await performMutation(procedure: "entities.update", input: input)
+        return dto.toModel()
+    }
+
+    func archiveSubject(id: String) async throws -> Subject {
+        let dto: EntityDTO = try await performMutation(procedure: "entities.archive", input: IDInput(id: id))
+        return dto.toModel()
+    }
+
+    func toggleSubjectFlag(id: String) async throws -> Subject {
+        let dto: EntityDTO = try await performMutation(procedure: "entities.toggleFlag", input: IDInput(id: id))
+        return dto.toModel()
+    }
+
+    func fetchSubjectById(id: String) async throws -> Subject {
+        let dto: EntityDTO = try await performQuery(procedure: "entities.getById", input: IDInput(id: id))
+        return dto.toModel()
+    }
+
+    func fetchCommunications(entityId: String? = nil, type: CommType? = nil) async throws -> [Communication] {
+        if entityId != nil || type != nil {
+            let input = CommFilterInput(entityId: entityId, type: type?.rawValue)
+            let dtos: [CommunicationDTO] = try await performQuery(procedure: "communications.list", input: input)
+            return dtos.map { $0.toModel() }
+        }
+        let dtos: [CommunicationDTO] = try await performQuery(procedure: "communications.list")
+        return dtos.map { $0.toModel() }
+    }
+
+    func createCommunication(entityId: String, entityName: String, type: CommType, sender: String, content: String, phoneNumber: String, duration: Double? = nil, transcription: String? = nil) async throws -> Communication {
+        let input = CreateCommInput(
+            entityId: entityId,
+            entityName: entityName,
+            type: type.rawValue,
+            sender: sender,
+            content: content,
+            phoneNumber: phoneNumber,
+            duration: duration,
+            transcription: transcription
+        )
+        let dto: CommunicationDTO = try await performMutation(procedure: "communications.create", input: input)
+        return dto.toModel()
+    }
+
+    func fetchEmails(entityId: String? = nil, category: String? = nil) async throws -> [EmailMessage] {
+        if entityId != nil || category != nil {
+            let input = EmailFilterInput(entityId: entityId, category: category)
+            let dtos: [EmailDTO] = try await performQuery(procedure: "emails.list", input: input)
+            return dtos.map { $0.toModel() }
+        }
+        let dtos: [EmailDTO] = try await performQuery(procedure: "emails.list")
+        return dtos.map { $0.toModel() }
+    }
+
+    func fetchAlerts(type: String? = nil) async throws -> [NexusAlert] {
+        if let type {
+            let input = AlertFilterInput(type: type)
+            let dtos: [AlertDTO] = try await performQuery(procedure: "alerts.list", input: input)
+            return dtos.map { $0.toModel() }
+        }
+        let dtos: [AlertDTO] = try await performQuery(procedure: "alerts.list")
+        return dtos.map { $0.toModel() }
     }
 
     func checkHealth() async throws -> BackendHealthResponse {

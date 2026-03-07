@@ -25,6 +25,8 @@ class NexusStore {
     var dataMode: DataMode = .demo
     var backendStatus: BackendStatus = .unknown
 
+    var dashboardData: DashboardResponse?
+
     var ctBalance: Double?
     var ctDIDs: [CTDIDNumber] = []
     var ctConnectionStatus: CTConnectionStatus = .disconnected
@@ -214,13 +216,15 @@ class NexusStore {
             async let emailsTask = api.fetchEmails()
             async let alertsTask = api.fetchAlerts()
             async let subjectsTask = api.fetchSubjects()
+            async let dashboardTask = api.fetchDashboard()
 
-            let (fetchedComms, fetchedEmails, fetchedAlerts, fetchedSubjects) = try await (commsTask, emailsTask, alertsTask, subjectsTask)
+            let (fetchedComms, fetchedEmails, fetchedAlerts, fetchedSubjects, fetchedDashboard) = try await (commsTask, emailsTask, alertsTask, subjectsTask, dashboardTask)
 
             communications = fetchedComms
             emails = fetchedEmails
             alerts = fetchedAlerts
             subjects = fetchedSubjects
+            dashboardData = fetchedDashboard
             dataMode = .live
             backendStatus = .connected(nil)
             persistToCache()
@@ -321,12 +325,176 @@ class NexusStore {
         guard let index = subjects.firstIndex(where: { $0.id == subject.id }) else { return }
         subjects[index].isFlagged.toggle()
         persistToCache()
+        guard dataMode == .live else { return }
+        Task {
+            do {
+                _ = try await api.toggleSubjectFlag(id: subject.id)
+            } catch {
+                guard let idx = subjects.firstIndex(where: { $0.id == subject.id }) else { return }
+                subjects[idx].isFlagged.toggle()
+                persistToCache()
+            }
+        }
     }
 
     func archiveSubject(_ subject: Subject) {
         guard let index = subjects.firstIndex(where: { $0.id == subject.id }) else { return }
+        let previousStatus = subjects[index].status
         subjects[index].status = .archived
         persistToCache()
+        guard dataMode == .live else { return }
+        Task {
+            do {
+                _ = try await api.archiveSubject(id: subject.id)
+            } catch {
+                guard let idx = subjects.firstIndex(where: { $0.id == subject.id }) else { return }
+                subjects[idx].status = previousStatus
+                persistToCache()
+            }
+        }
+    }
+
+    func createSubject(name: String, type: SubjectType, creditLimit: Double, assignedPhone: String, assignedEmail: String, notes: String?) async throws {
+        if dataMode == .live {
+            let created = try await api.createSubject(
+                name: name,
+                type: type,
+                creditLimit: creditLimit,
+                assignedPhone: assignedPhone,
+                assignedEmail: assignedEmail,
+                notes: notes
+            )
+            subjects.insert(created, at: 0)
+        } else {
+            let newSubject = Subject(
+                id: UUID().uuidString,
+                name: name,
+                type: type,
+                status: .active,
+                creditScore: 75,
+                assignedPhone: assignedPhone,
+                assignedEmail: assignedEmail,
+                lastActivityDate: Date(),
+                isFlagged: false,
+                notes: notes ?? "",
+                createdDate: Date(),
+                dateOfBirth: "",
+                address: "",
+                idNumber: "",
+                applications: []
+            )
+            subjects.insert(newSubject, at: 0)
+        }
+        persistToCache()
+    }
+
+    func updateSubject(id: String, name: String? = nil, type: SubjectType? = nil, status: SubjectStatus? = nil, creditScore: Int? = nil, assignedPhone: String? = nil, assignedEmail: String? = nil, notes: String? = nil, isFlagged: Bool? = nil) async throws {
+        guard let index = subjects.firstIndex(where: { $0.id == id }) else { return }
+        if dataMode == .live {
+            let input = UpdateEntityInput(
+                id: id,
+                name: name,
+                type: type?.rawValue,
+                status: status?.rawValue,
+                healthScore: creditScore,
+                creditLimit: nil,
+                utilisationPercent: nil,
+                monthlyBurn: nil,
+                assignedPhone: assignedPhone,
+                assignedEmail: assignedEmail,
+                clearScore: nil,
+                isFlagged: isFlagged,
+                notes: notes
+            )
+            let updated = try await api.updateSubject(input)
+            subjects[index] = Subject(
+                id: updated.id,
+                name: updated.name,
+                type: updated.type,
+                status: updated.status,
+                creditScore: updated.creditScore,
+                assignedPhone: updated.assignedPhone,
+                assignedEmail: updated.assignedEmail,
+                lastActivityDate: updated.lastActivityDate,
+                isFlagged: updated.isFlagged,
+                notes: updated.notes,
+                createdDate: updated.createdDate,
+                dateOfBirth: subjects[index].dateOfBirth,
+                address: subjects[index].address,
+                idNumber: subjects[index].idNumber,
+                applications: subjects[index].applications
+            )
+        } else {
+            if let name { subjects[index].name = name }
+            if let type { subjects[index].type = type }
+            if let status { subjects[index].status = status }
+            if let creditScore { subjects[index].creditScore = creditScore }
+            if let assignedPhone { subjects[index].assignedPhone = assignedPhone }
+            if let assignedEmail { subjects[index].assignedEmail = assignedEmail }
+            if let notes { subjects[index].notes = notes }
+            if let isFlagged { subjects[index].isFlagged = isFlagged }
+            subjects[index].lastActivityDate = Date()
+        }
+        persistToCache()
+    }
+
+    func refreshSubjectFromBackend(_ id: String) async {
+        guard dataMode == .live else { return }
+        do {
+            let refreshed = try await api.fetchSubjectById(id: id)
+            guard let index = subjects.firstIndex(where: { $0.id == id }) else { return }
+            subjects[index] = Subject(
+                id: refreshed.id,
+                name: refreshed.name,
+                type: refreshed.type,
+                status: refreshed.status,
+                creditScore: refreshed.creditScore,
+                assignedPhone: refreshed.assignedPhone,
+                assignedEmail: refreshed.assignedEmail,
+                lastActivityDate: refreshed.lastActivityDate,
+                isFlagged: refreshed.isFlagged,
+                notes: refreshed.notes,
+                createdDate: refreshed.createdDate,
+                dateOfBirth: subjects[index].dateOfBirth,
+                address: subjects[index].address,
+                idNumber: subjects[index].idNumber,
+                applications: subjects[index].applications
+            )
+            persistToCache()
+        } catch { }
+    }
+
+    func fetchCommsForSubject(_ subjectId: String) async -> [Communication] {
+        guard dataMode == .live else {
+            return communications.filter { $0.subjectId == subjectId }
+        }
+        do {
+            return try await api.fetchCommunications(entityId: subjectId)
+        } catch {
+            return communications.filter { $0.subjectId == subjectId }
+        }
+    }
+
+    func fetchEmailsForSubject(_ subjectId: String) async -> [EmailMessage] {
+        guard dataMode == .live else {
+            return emails.filter { $0.subjectId == subjectId }
+        }
+        do {
+            return try await api.fetchEmails(entityId: subjectId)
+        } catch {
+            return emails.filter { $0.subjectId == subjectId }
+        }
+    }
+
+    func fetchAlertsByType(_ type: String) async -> [NexusAlert] {
+        guard dataMode == .live else {
+            return alerts.filter { $0.type.rawValue == type }
+        }
+        do {
+            return try await api.fetchAlerts(type: type)
+        } catch {
+            return alerts.filter { $0.type.rawValue == type }
+        }
     }
 
     func subjectForId(_ id: String) -> Subject? {

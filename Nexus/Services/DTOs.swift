@@ -225,3 +225,53 @@ nonisolated struct IDInput: Codable, Sendable {
 }
 
 nonisolated struct EmptyInput: Codable, Sendable {}
+
+nonisolated struct CreateEntityInput: Codable, Sendable {
+    let name: String
+    let type: String
+    let creditLimit: Double
+    let assignedPhone: String
+    let assignedEmail: String
+    let notes: String?
+}
+
+nonisolated struct UpdateEntityInput: Codable, Sendable {
+    let id: String
+    let name: String?
+    let type: String?
+    let status: String?
+    let healthScore: Int?
+    let creditLimit: Double?
+    let utilisationPercent: Double?
+    let monthlyBurn: Double?
+    let assignedPhone: String?
+    let assignedEmail: String?
+    let clearScore: Int?
+    let isFlagged: Bool?
+    let notes: String?
+}
+
+nonisolated struct CommFilterInput: Codable, Sendable {
+    let entityId: String?
+    let type: String?
+}
+
+nonisolated struct EmailFilterInput: Codable, Sendable {
+    let entityId: String?
+    let category: String?
+}
+
+nonisolated struct AlertFilterInput: Codable, Sendable {
+    let type: String?
+}
+
+nonisolated struct CreateCommInput: Codable, Sendable {
+    let entityId: String
+    let entityName: String
+    let type: String
+    let sender: String
+    let content: String
+    let phoneNumber: String
+    let duration: Double?
+    let transcription: String?
+}
