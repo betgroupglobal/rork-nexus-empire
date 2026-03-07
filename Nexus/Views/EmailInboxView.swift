@@ -37,6 +37,20 @@ struct EmailInboxView: View {
                     }
                     .tint(.orange)
                 }
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        withAnimation { store.deleteEmail(email) }
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+
+                    Button {
+                        withAnimation { store.archiveEmail(email) }
+                    } label: {
+                        Label("Archive", systemImage: "archivebox")
+                    }
+                    .tint(.purple)
+                }
             }
         }
         .listStyle(.plain)
@@ -48,7 +62,7 @@ struct EmailInboxView: View {
             }
         }
         .sheet(item: $selectedEmail) { email in
-            EmailDetailSheet(email: email, accountName: accountName(for: email))
+            EmailDetailSheet(email: email, accountName: accountName(for: email), store: store)
         }
     }
 
@@ -66,15 +80,15 @@ struct EmailInboxView: View {
                     )
                 }
             }
-            .padding(.horizontal, 16)
             .padding(.vertical, 6)
         }
+        .contentMargins(.horizontal, 16)
         .scrollIndicators(.hidden)
     }
 
     private func accountChip(label: String, accountId: UUID?, icon: String, color: Color, badge: Int = 0) -> some View {
         Button {
-            withAnimation(.snappy) { selectedAccountId = accountId }
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { selectedAccountId = accountId }
         } label: {
             HStack(spacing: 6) {
                 Image(systemName: icon)
@@ -109,15 +123,15 @@ struct EmailInboxView: View {
                     categoryButton(label: cat.rawValue, category: cat)
                 }
             }
-            .padding(.horizontal, 16)
             .padding(.vertical, 4)
         }
+        .contentMargins(.horizontal, 16)
         .scrollIndicators(.hidden)
     }
 
     private func categoryButton(label: String, category: EmailCategory?) -> some View {
         Button {
-            withAnimation(.snappy) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                 selectedCategory = category
             }
         } label: {
@@ -163,7 +177,10 @@ struct EmailInboxView: View {
 struct EmailDetailSheet: View {
     let email: EmailMessage
     var accountName: String? = nil
+    var store: NexusStore?
     @Environment(\.dismiss) private var dismiss
+    @State private var showArchiveConfirm: Bool = false
+    @State private var showDeleteConfirm: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -218,6 +235,8 @@ struct EmailDetailSheet: View {
                         }
                     }
 
+                    actionBar
+
                     Divider()
 
                     Text(email.snippet)
@@ -232,9 +251,59 @@ struct EmailDetailSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
+            .confirmationDialog("Archive Email", isPresented: $showArchiveConfirm, titleVisibility: .visible) {
+                Button("Archive") {
+                    store?.archiveEmail(email)
+                    dismiss()
+                }
+            } message: {
+                Text("Move this email to the archive?")
+            }
+            .confirmationDialog("Delete Email", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+                Button("Delete", role: .destructive) {
+                    store?.deleteEmail(email)
+                    dismiss()
+                }
+            } message: {
+                Text("Permanently delete this email?")
+            }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
         .presentationContentInteraction(.scrolls)
+    }
+
+    private var actionBar: some View {
+        HStack(spacing: 0) {
+            actionButton(icon: "arrowshape.turn.up.left.fill", label: "Reply", color: .blue) {}
+            actionButton(icon: "arrowshape.turn.up.right.fill", label: "Forward", color: .blue) {}
+            actionButton(icon: "flag.fill", label: email.isFlagged ? "Unflag" : "Flag", color: .orange) {
+                store?.toggleEmailFlag(email)
+            }
+            actionButton(icon: "archivebox.fill", label: "Archive", color: .purple) {
+                showArchiveConfirm = true
+            }
+            actionButton(icon: "trash.fill", label: "Delete", color: .red) {
+                showDeleteConfirm = true
+            }
+        }
+        .padding(4)
+        .background(Color(.tertiarySystemGroupedBackground))
+        .clipShape(.rect(cornerRadius: 14))
+    }
+
+    private func actionButton(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.subheadline)
+                    .foregroundStyle(color)
+                Text(label)
+                    .font(.system(size: 9))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+        }
     }
 }

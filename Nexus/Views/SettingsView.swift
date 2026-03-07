@@ -77,6 +77,18 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Data") {
+                if let lastFetch = CacheService.lastFetchDate() {
+                    LabeledContent("Last Synced") {
+                        Text(lastFetch, style: .relative)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                LabeledContent("Cached Messages", value: "\(store.communications.count)")
+                LabeledContent("Cached Emails", value: "\(store.emails.count)")
+                LabeledContent("Cached Alerts", value: "\(store.alerts.count)")
+            }
+
             if let user = authVM.currentUser {
                 Section("Account") {
                     HStack(spacing: 12) {
@@ -172,7 +184,7 @@ struct IntegrationIcon: View {
 
 struct CrazyTelSettingsView: View {
     let store: NexusStore
-    @AppStorage("crazytel_api_key") private var apiKey: String = ""
+    @State private var apiKey: String = ""
     @AppStorage("crazytel_enabled") private var enabled: Bool = false
     @State private var showingKey: Bool = false
     @State private var isTestingConnection: Bool = false
@@ -211,6 +223,7 @@ struct CrazyTelSettingsView: View {
                 Toggle("Enable Integration", isOn: $enabled)
                     .onChange(of: enabled) { _, newValue in
                         if newValue && !apiKey.isEmpty {
+                            store.crazytelAPIKey = apiKey
                             Task { await store.connectCrazyTel() }
                         } else if !newValue {
                             store.disconnectCrazyTel()
@@ -277,6 +290,9 @@ struct CrazyTelSettingsView: View {
         }
         .navigationTitle("CrazyTel")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            apiKey = store.crazytelAPIKey
+        }
         .refreshable {
             await store.refreshCrazyTel()
         }

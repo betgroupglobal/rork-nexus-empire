@@ -26,6 +26,7 @@ struct UnifiedInboxView: View {
     @State private var searchText: String = ""
     @State private var selectedComm: Communication?
     @State private var selectedEmail: EmailMessage?
+    @State private var showCompose: Bool = false
 
     var body: some View {
         List {
@@ -58,11 +59,38 @@ struct UnifiedInboxView: View {
                         .tint(.orange)
                     }
                 }
+                .swipeActions(edge: .trailing) {
+                    if case .email(let email) = item.kind {
+                        Button(role: .destructive) {
+                            withAnimation { store.deleteEmail(email) }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+
+                        Button {
+                            withAnimation { store.archiveEmail(email) }
+                        } label: {
+                            Label("Archive", systemImage: "archivebox")
+                        }
+                        .tint(.purple)
+                    }
+                }
             }
         }
         .listStyle(.plain)
         .searchable(text: $searchText, prompt: "Search inbox...")
         .navigationTitle("Inbox")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                if store.ctConnectionStatus == .connected {
+                    Button {
+                        showCompose = true
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                    }
+                }
+            }
+        }
         .overlay {
             if unifiedItems.isEmpty {
                 ContentUnavailableView("Nothing Here", systemImage: "tray", description: Text("No messages match your filters"))
@@ -72,7 +100,10 @@ struct UnifiedInboxView: View {
             CommDetailSheet(comm: comm)
         }
         .sheet(item: $selectedEmail) { email in
-            EmailDetailSheet(email: email)
+            EmailDetailSheet(email: email, store: store)
+        }
+        .sheet(isPresented: $showCompose) {
+            SMSComposeView(store: store)
         }
     }
 
@@ -81,7 +112,7 @@ struct UnifiedInboxView: View {
             HStack(spacing: 8) {
                 ForEach(InboxFilter.allCases) { f in
                     Button {
-                        withAnimation(.snappy) { filter = f }
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { filter = f }
                     } label: {
                         Label(f.rawValue, systemImage: f.icon)
                             .font(.subheadline)
@@ -93,9 +124,9 @@ struct UnifiedInboxView: View {
                     }
                 }
             }
-            .padding(.horizontal, 16)
             .padding(.vertical, 8)
         }
+        .contentMargins(.horizontal, 16)
         .scrollIndicators(.hidden)
         .sensoryFeedback(.selection, trigger: filter)
     }

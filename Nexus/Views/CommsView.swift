@@ -59,15 +59,15 @@ struct CommsView: View {
                 filterButton(label: "Calls", type: .call, icon: "phone.fill")
                 filterButton(label: "Voicemail", type: .voicemail, icon: "recordingtape.fill")
             }
-            .padding(.horizontal, 16)
             .padding(.vertical, 8)
         }
+        .contentMargins(.horizontal, 16)
         .scrollIndicators(.hidden)
     }
 
     private func filterButton(label: String, type: CommType?, icon: String) -> some View {
         Button {
-            withAnimation(.snappy) {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                 selectedTab = type
             }
         } label: {

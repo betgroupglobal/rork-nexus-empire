@@ -21,11 +21,61 @@ class NexusStore {
 
     var emailAccounts: [EmailAccount] = []
 
-    @ObservationIgnored @AppStorage("crazytel_api_key") var crazytelAPIKey: String = ""
+    var crazytelAPIKey: String {
+        get { KeychainService.load(key: "crazytel_api_key") ?? "" }
+        set {
+            if newValue.isEmpty {
+                KeychainService.delete(key: "crazytel_api_key")
+            } else {
+                KeychainService.save(key: "crazytel_api_key", value: newValue)
+            }
+        }
+    }
+
     @ObservationIgnored @AppStorage("crazytel_enabled") var crazytelEnabled: Bool = false
 
     private let api = NexusAPIService.shared
     private let ctService = CrazyTelService.shared
+
+    var totalFirepower: Double {
+        let emailCount = Double(emails.count) * 5_000
+        let commCount = Double(communications.count) * 2_500
+        let balance = ctBalance ?? 0
+        return emailCount + commCount + balance + 450_000
+    }
+
+    var monthlyBurn: Double {
+        let didCost = Double(ctDIDs.count) * 12.0
+        let emailCost = Double(emailAccounts.count) * 5.0
+        return didCost + emailCost + 285
+    }
+
+    var overallHealth: Double {
+        (creditHealth + activityHealth + commsHealth) / 3.0
+    }
+
+    var creditHealth: Double {
+        let unreadAlerts = alerts.filter { !$0.isRead && ($0.type == .utilisationWarning || $0.type == .clearScoreDrop) }.count
+        return max(0, min(100, 100 - Double(unreadAlerts) * 20))
+    }
+
+    var activityHealth: Double {
+        let totalComms = communications.count
+        guard totalComms > 0 else { return 50 }
+        let recentComms = communications.filter {
+            $0.timestamp > Calendar.current.date(byAdding: .day, value: -7, to: Date())!
+        }.count
+        let ratio = Double(recentComms) / Double(totalComms)
+        return min(100, ratio * 200)
+    }
+
+    var commsHealth: Double {
+        let total = communications.count + emails.count
+        guard total > 0 else { return 50 }
+        let unread = communications.filter { !$0.isRead }.count + emails.filter { !$0.isRead }.count
+        let readRatio = 1.0 - (Double(unread) / Double(total))
+        return min(100, readRatio * 120)
+    }
 
     var urgentActions: [NexusAlert] {
         alerts.filter { !$0.isRead && $0.priority == .critical }
@@ -59,6 +109,8 @@ class NexusStore {
     private static let emailAccountsKey = "nexus_email_accounts"
 
     init() {
+        migrateCrazyTelKey()
+        loadCachedData()
         loadEmailAccounts()
         Task {
             await loadData()
@@ -68,9 +120,54 @@ class NexusStore {
         }
     }
 
+    private func migrateCrazyTelKey() {
+        if let oldKey = UserDefaults.standard.string(forKey: "crazytel_api_key"), !oldKey.isEmpty {
+            if KeychainService.load(key: "crazytel_api_key") == nil {
+                KeychainService.save(key: "crazytel_api_key", value: oldKey)
+            }
+            UserDefaults.standard.removeObject(forKey: "crazytel_api_key")
+        }
+    }
+
+    private func loadCachedData() {
+        if let cachedComms = CacheService.loadCommunications(), !cachedComms.isEmpty {
+            communications = cachedComms
+        }
+        if let cachedEmails = CacheService.loadEmails(), !cachedEmails.isEmpty {
+            emails = cachedEmails
+        }
+        if let cachedAlerts = CacheService.loadAlerts(), !cachedAlerts.isEmpty {
+            alerts = cachedAlerts
+        }
+    }
+
+    private func persistToCache() {
+        CacheService.saveCommunications(communications)
+        CacheService.saveEmails(emails)
+        CacheService.saveAlerts(alerts)
+        CacheService.updateLastFetch()
+        updateWidgetData()
+    }
+
+    func updateWidgetData() {
+        let shared = UserDefaults(suiteName: "group.app.rork.nexus.shared")
+        shared?.set(totalFirepower, forKey: "totalFirepower")
+        shared?.set(monthlyBurn, forKey: "monthlyBurn")
+        shared?.set(urgentActions.count, forKey: "urgentCount")
+        shared?.set(emailAccounts.count + ctDIDs.count, forKey: "activeEntities")
+
+        let urgentData = urgentActions.prefix(3).map { [$0.title, $0.message] }
+        if let data = try? JSONEncoder().encode(urgentData) {
+            shared?.set(data, forKey: "urgentActions")
+        }
+    }
+
     func loadData() async {
         guard api.isConfigured else {
-            loadSampleData()
+            if communications.isEmpty {
+                loadSampleData()
+                persistToCache()
+            }
             return
         }
         isLoading = true
@@ -85,10 +182,12 @@ class NexusStore {
             communications = fetchedComms
             emails = fetchedEmails
             alerts = fetchedAlerts
+            persistToCache()
         } catch {
             lastError = error.localizedDescription
             if communications.isEmpty {
                 loadSampleData()
+                persistToCache()
             }
         }
         isLoading = false
@@ -101,6 +200,7 @@ class NexusStore {
     func markCommRead(_ comm: Communication) {
         guard let index = communications.firstIndex(where: { $0.id == comm.id }) else { return }
         communications[index].isRead = true
+        persistToCache()
         Task {
             do {
                 _ = try await api.markCommRead(id: comm.id.uuidString.lowercased())
@@ -113,6 +213,7 @@ class NexusStore {
     func markEmailRead(_ email: EmailMessage) {
         guard let index = emails.firstIndex(where: { $0.id == email.id }) else { return }
         emails[index].isRead = true
+        persistToCache()
         Task {
             do {
                 _ = try await api.markEmailRead(id: email.id.uuidString.lowercased())
@@ -125,6 +226,7 @@ class NexusStore {
     func toggleEmailFlag(_ email: EmailMessage) {
         guard let index = emails.firstIndex(where: { $0.id == email.id }) else { return }
         emails[index].isFlagged.toggle()
+        persistToCache()
         Task {
             do {
                 _ = try await api.toggleEmailFlag(id: email.id.uuidString.lowercased())
@@ -134,9 +236,20 @@ class NexusStore {
         }
     }
 
+    func archiveEmail(_ email: EmailMessage) {
+        emails.removeAll { $0.id == email.id }
+        persistToCache()
+    }
+
+    func deleteEmail(_ email: EmailMessage) {
+        emails.removeAll { $0.id == email.id }
+        persistToCache()
+    }
+
     func markAlertRead(_ alert: NexusAlert) {
         guard let index = alerts.firstIndex(where: { $0.id == alert.id }) else { return }
         alerts[index].isRead = true
+        persistToCache()
         Task {
             do {
                 _ = try await api.markAlertRead(id: alert.id.uuidString.lowercased())
@@ -150,6 +263,7 @@ class NexusStore {
         for i in alerts.indices {
             alerts[i].isRead = true
         }
+        persistToCache()
         Task {
             try? await api.markAllAlertsRead()
         }
@@ -168,6 +282,7 @@ class NexusStore {
             ctBalance = balance.balance
             ctConnectionStatus = .connected
             await fetchCrazyTelDIDs()
+            updateWidgetData()
         } catch {
             ctConnectionStatus = .error
             ctError = error.localizedDescription
@@ -220,6 +335,7 @@ class NexusStore {
                     phoneNumber: to
                 )
                 communications.insert(comm, at: 0)
+                persistToCache()
             }
         } catch {
             smsError = error.localizedDescription
@@ -303,6 +419,24 @@ class NexusStore {
 
     func unreadCountForAccount(_ accountId: UUID) -> Int {
         emails.filter { $0.accountId == accountId && !$0.isRead }.count
+    }
+
+    func findRelatedComm(for alert: NexusAlert) -> Communication? {
+        guard alert.type == .newComm else { return nil }
+        let titleLower = alert.title.lowercased()
+        return communications.first { comm in
+            titleLower.contains(comm.sender.lowercased()) ||
+            comm.content.localizedStandardContains(alert.title)
+        }
+    }
+
+    func findRelatedEmail(for alert: NexusAlert) -> EmailMessage? {
+        let titleLower = alert.title.lowercased()
+        let messageLower = alert.message.lowercased()
+        return emails.first { email in
+            titleLower.contains(email.sender.lowercased()) ||
+            messageLower.contains(email.subject.lowercased())
+        }
     }
 
     private func assignEmailsToAccount(_ account: EmailAccount) {
