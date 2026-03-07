@@ -7,204 +7,441 @@
     <link rel="stylesheet" href="/ui/styles.css" />
   </head>
   <body>
-    <div class="page-shell">
-      <aside class="side-nav">
-        <div class="brand">Nexus Empire</div>
-        <button class="tab-btn active" data-tab="warroom" type="button">War Room</button>
-        <button class="tab-btn" data-tab="subjects" type="button">Subjects</button>
-        <button class="tab-btn" data-tab="comms" type="button">Comms</button>
-        <button class="tab-btn" data-tab="email" type="button">Email</button>
-        <button class="tab-btn" data-tab="alerts" type="button">Alerts</button>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand-lockup">
+          <div class="brand-mark">NE</div>
+          <div>
+            <div class="eyebrow">Swift App + Web Platform</div>
+            <div class="brand-name">Nexus Empire</div>
+          </div>
+        </div>
+
+        <div class="sidebar-card">
+          <div class="sidebar-card-label">Workflow</div>
+          <div class="sidebar-card-title">One surface for subjects, communications, inboxes and action queues.</div>
+          <div class="sidebar-card-note">Clean signals, deliberate colour, and fast credential access.</div>
+        </div>
+
+        <nav class="nav-stack">
+          <button class="tab-btn active" data-tab="warroom" type="button">
+            <span>War Room</span>
+            <span class="nav-count" id="nav-warroom-count">0</span>
+          </button>
+          <button class="tab-btn" data-tab="subjects" type="button">
+            <span>Subjects</span>
+            <span class="nav-count" id="nav-subjects-count">0</span>
+          </button>
+          <button class="tab-btn" data-tab="comms" type="button">
+            <span>Comms</span>
+            <span class="nav-count" id="nav-comms-count">0</span>
+          </button>
+          <button class="tab-btn" data-tab="email" type="button">
+            <span>Email</span>
+            <span class="nav-count" id="nav-email-count">0</span>
+          </button>
+          <button class="tab-btn" data-tab="alerts" type="button">
+            <span>Alerts</span>
+            <span class="nav-count" id="nav-alerts-count">0</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-foot">
+          <div class="sidebar-stat">
+            <span class="sidebar-stat-label">Intentional rating</span>
+            <span class="sidebar-stat-value rating-high">Green = strongest signal</span>
+          </div>
+        </div>
       </aside>
 
-      <main class="main-view">
-        <header class="topbar">
+      <main class="workspace">
+        <header class="workspace-header">
           <div>
+            <div class="eyebrow">Nexus command platform</div>
             <h1 id="tab-title">War Room</h1>
-            <p class="subtitle">Simple workflow • precise signal • purposeful action</p>
+            <p class="subtitle" id="tab-subtitle">Overview of live power, credentials and next actions.</p>
           </div>
-          <div class="topbar-right">
+          <div class="header-cluster">
             <div id="auth-status" class="pill">Guest</div>
             <div id="server-status" class="pill pill-warn">Connecting</div>
           </div>
         </header>
 
         <section class="panel active" id="panel-warroom">
-          <div class="card stack">
-            <h2>Credentials</h2>
-            <form id="login-form" class="form-grid">
-              <input name="email" type="email" placeholder="Email" required />
-              <input name="password" type="password" placeholder="Password" required />
-              <button class="btn btn-primary" type="submit">Login</button>
-            </form>
-            <form id="register-form" class="form-grid">
-              <input name="name" type="text" placeholder="Name" required />
-              <input name="email" type="email" placeholder="Email" required />
-              <input name="password" type="password" placeholder="Password (min 6)" required />
-              <button class="btn btn-primary" type="submit">Register</button>
-            </form>
-            <div class="action-row">
-              <button class="btn btn-ghost" id="btn-refresh-all" type="button">Refresh</button>
-              <button class="btn btn-ghost" id="btn-me" type="button">Who Am I</button>
-              <button class="btn btn-danger" id="btn-logout" type="button">Logout</button>
+          <div class="hero-panel">
+            <div class="hero-copy">
+              <div class="eyebrow">Live overview</div>
+              <h2 class="hero-title">Simple command flow for credentials, subjects, comms and mailboxes.</h2>
+              <p class="hero-text">A lighter, more precise layout with a deliberate gradient, clear hierarchy, and action-first workbench.</p>
+              <div class="hero-actions">
+                <button class="btn btn-primary" id="btn-refresh-all" type="button">Refresh workspace</button>
+                <button class="btn btn-ghost" id="btn-me" type="button">Who am I</button>
+              </div>
             </div>
-            <div class="meta" id="auth-message">Use login/register for authenticated checks.</div>
-          </div>
-
-          <div class="hero-card">
-            <div>
-              <div class="hero-label">Current Status</div>
-              <h2 class="hero-title">Empire is thriving</h2>
-            </div>
-            <div class="hero-power">
-              <div id="hero-power-value" class="rating-high">0%</div>
+            <div class="hero-meter">
+              <div class="hero-meter-label">Operational power</div>
+              <div id="hero-power-value" class="hero-meter-value rating-high">0%</div>
               <div class="meta" id="hero-power-sub">of maximum potential reached</div>
             </div>
           </div>
 
-          <div class="stat-grid" id="warroom-stats"></div>
+          <div class="overview-grid">
+            <section class="module-card credential-card">
+              <div class="module-head">
+                <div>
+                  <div class="module-label">Credential desk</div>
+                  <h2>Access and session</h2>
+                </div>
+                <div class="module-note" id="auth-message">Use login or register for authenticated checks.</div>
+              </div>
+              <div class="credential-stack">
+                <form id="login-form" class="form-grid">
+                  <input name="email" type="email" placeholder="Email" required />
+                  <input name="password" type="password" placeholder="Password" required />
+                  <button class="btn btn-primary" type="submit">Login</button>
+                </form>
+                <form id="register-form" class="form-grid">
+                  <input name="name" type="text" placeholder="Name" required />
+                  <input name="email" type="email" placeholder="Email" required />
+                  <input name="password" type="password" placeholder="Password (min 6)" required />
+                  <button class="btn btn-soft" type="submit">Register</button>
+                </form>
+              </div>
+            </section>
 
-          <div class="card stack">
-            <div id="longest-active" class="meta"></div>
+            <section class="module-card command-card">
+              <div class="module-head">
+                <div>
+                  <div class="module-label">Workflow</div>
+                  <h2>Command deck</h2>
+                </div>
+                <div class="module-note">Fast actions for session control</div>
+              </div>
+              <div class="action-grid">
+                <button class="btn btn-ghost" id="btn-refresh-fab" type="button">Sync all data</button>
+                <button class="btn btn-ghost" id="btn-logout" type="button">Logout</button>
+              </div>
+              <div class="intent-list">
+                <div class="intent-row">
+                  <span class="intent-index">01</span>
+                  <div>
+                    <div class="intent-title">Authenticate</div>
+                    <div class="meta">Open a working session and verify identity.</div>
+                  </div>
+                </div>
+                <div class="intent-row">
+                  <span class="intent-index">02</span>
+                  <div>
+                    <div class="intent-title">Review the queue</div>
+                    <div class="meta">Unread communications, flagged mail, and critical alerts surface first.</div>
+                  </div>
+                </div>
+                <div class="intent-row">
+                  <span class="intent-index">03</span>
+                  <div>
+                    <div class="intent-title">Act inside the roster</div>
+                    <div class="meta">Update subjects, archive noise, and keep active applications moving.</div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="module-card pipeline-card">
+              <div class="module-head">
+                <div>
+                  <div class="module-label">Priority pipeline</div>
+                  <h2>What needs attention now</h2>
+                </div>
+                <div class="module-note">Derived from live data</div>
+              </div>
+              <div id="longest-active" class="spotlight-card"></div>
+              <div id="priority-queue" class="stack"></div>
+            </section>
           </div>
 
-          <div class="table-card">
-            <div class="table-head">
-              <h2>Recent Activity</h2>
-              <div class="meta">Last 30 minutes</div>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Event</th>
-                  <th>Impact</th>
-                  <th>Time</th>
-                </tr>
-              </thead>
-              <tbody id="activity-rows"></tbody>
-            </table>
+          <div class="stat-grid" id="warroom-stats"></div>
+
+          <div class="content-grid two-column">
+            <section class="table-card">
+              <div class="module-head">
+                <div>
+                  <div class="module-label">Signal log</div>
+                  <h2>Recent activity</h2>
+                </div>
+                <div class="module-note">Latest alerts and movement</div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Event</th>
+                    <th>Impact</th>
+                    <th>Time</th>
+                  </tr>
+                </thead>
+                <tbody id="activity-rows"></tbody>
+              </table>
+            </section>
+
+            <section class="module-card">
+              <div class="module-head">
+                <div>
+                  <div class="module-label">Focus roster</div>
+                  <h2>Strongest subject positions</h2>
+                </div>
+                <div class="module-note">Health and available capacity</div>
+              </div>
+              <div id="focus-roster" class="stack"></div>
+            </section>
           </div>
         </section>
 
         <section class="panel" id="panel-subjects">
-          <div class="card stack">
-            <h2>Create Subject</h2>
-            <form id="subject-create-form" class="form-grid form-grid-wide">
-              <input name="name" type="text" placeholder="Name" required />
-              <select name="type">
-                <option value="Person">Person</option>
-                <option value="Ltd">Ltd</option>
-                <option value="Trust">Trust</option>
-              </select>
-              <input name="creditLimit" type="number" min="0" placeholder="Credit Limit" required />
-              <input name="assignedPhone" type="text" placeholder="Assigned Phone" required />
-              <input name="assignedEmail" type="email" placeholder="Assigned Email" required />
-              <input name="notes" type="text" placeholder="Notes" />
-              <button class="btn btn-primary" type="submit">Create</button>
-            </form>
-          </div>
-
-          <div class="card stack">
-            <h2>Workflow Filter</h2>
-            <div class="form-grid">
-              <input id="subjects-search" type="text" placeholder="Search subject" />
-              <select id="subjects-status">
-                <option value="">Any status</option>
-                <option value="Active">Active</option>
-                <option value="Pending">Pending</option>
-                <option value="Dormant">Dormant</option>
-                <option value="At Risk">At Risk</option>
-                <option value="Archived">Archived</option>
-              </select>
-              <button class="btn btn-ghost" id="subjects-filter-apply" type="button">Apply</button>
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Subjects</div>
+              <h2>Roster and workflow</h2>
             </div>
+            <div class="summary-pill" id="subjects-summary">0 subjects</div>
           </div>
 
-          <div class="list-grid" id="subjects-list"></div>
+          <div class="content-grid split-layout">
+            <section class="module-card">
+              <div class="module-head">
+                <div>
+                  <div class="module-label">Create</div>
+                  <h2>Add subject</h2>
+                </div>
+                <div class="module-note">Simple credential and workflow entry</div>
+              </div>
+              <form id="subject-create-form" class="form-grid form-grid-wide">
+                <input name="name" type="text" placeholder="Name" required />
+                <select name="type">
+                  <option value="Person">Person</option>
+                  <option value="Ltd">Ltd</option>
+                  <option value="Trust">Trust</option>
+                </select>
+                <input name="creditLimit" type="number" min="0" placeholder="Credit Limit" required />
+                <input name="assignedPhone" type="text" placeholder="Assigned Phone" required />
+                <input name="assignedEmail" type="email" placeholder="Assigned Email" required />
+                <input name="notes" type="text" placeholder="Notes" />
+                <button class="btn btn-primary" type="submit">Create subject</button>
+              </form>
+            </section>
+
+            <section class="module-card">
+              <div class="module-head">
+                <div>
+                  <div class="module-label">Filter</div>
+                  <h2>Refine roster</h2>
+                </div>
+                <div class="module-note">Search by name, email, phone or status</div>
+              </div>
+              <div class="form-grid">
+                <input id="subjects-search" type="text" placeholder="Search subject" />
+                <select id="subjects-status">
+                  <option value="">Any status</option>
+                  <option value="Active">Active</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Dormant">Dormant</option>
+                  <option value="At Risk">At Risk</option>
+                  <option value="Archived">Archived</option>
+                </select>
+                <button class="btn btn-ghost" id="subjects-filter-apply" type="button">Apply filters</button>
+              </div>
+            </section>
+          </div>
+
+          <section class="collection-shell">
+            <div class="collection-head">
+              <div>
+                <div class="module-label">Roster</div>
+                <h2>Subject records</h2>
+              </div>
+            </div>
+            <div class="list-grid" id="subjects-list"></div>
+          </section>
         </section>
 
         <section class="panel" id="panel-comms">
-          <div class="card stack">
-            <h2>Create Communication</h2>
-            <form id="comm-create-form" class="form-grid form-grid-wide">
-              <select name="subjectId" id="comm-subject"></select>
-              <select name="type">
-                <option value="SMS">SMS</option>
-                <option value="Call">Call</option>
-                <option value="Voicemail">Voicemail</option>
-              </select>
-              <input name="sender" type="text" placeholder="Sender" required />
-              <input name="phoneNumber" type="text" placeholder="Phone Number" required />
-              <input name="content" type="text" placeholder="Content" required />
-              <input name="duration" type="number" min="0" placeholder="Duration seconds" />
-              <input name="transcription" type="text" placeholder="Transcription" />
-              <button class="btn btn-primary" type="submit">Create</button>
-            </form>
-          </div>
-
-          <div class="card stack">
-            <h2>Filter</h2>
-            <div class="form-grid">
-              <select id="comms-filter-subject"></select>
-              <select id="comms-filter-type">
-                <option value="">Any type</option>
-                <option value="SMS">SMS</option>
-                <option value="Call">Call</option>
-                <option value="Voicemail">Voicemail</option>
-              </select>
-              <button class="btn btn-ghost" id="comms-filter-apply" type="button">Apply</button>
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Communications</div>
+              <h2>Message and call activity</h2>
             </div>
+            <div class="summary-pill" id="comms-summary">0 items</div>
           </div>
 
-          <div class="list-grid" id="comms-list"></div>
+          <div class="content-grid split-layout">
+            <section class="module-card">
+              <div class="module-head">
+                <div>
+                  <div class="module-label">Create</div>
+                  <h2>Log communication</h2>
+                </div>
+                <div class="module-note">Capture calls, SMS and voicemail</div>
+              </div>
+              <form id="comm-create-form" class="form-grid form-grid-wide">
+                <select name="subjectId" id="comm-subject"></select>
+                <select name="type">
+                  <option value="SMS">SMS</option>
+                  <option value="Call">Call</option>
+                  <option value="Voicemail">Voicemail</option>
+                </select>
+                <input name="sender" type="text" placeholder="Sender" required />
+                <input name="phoneNumber" type="text" placeholder="Phone Number" required />
+                <input name="content" type="text" placeholder="Content" required />
+                <input name="duration" type="number" min="0" placeholder="Duration seconds" />
+                <input name="transcription" type="text" placeholder="Transcription" />
+                <button class="btn btn-primary" type="submit">Create communication</button>
+              </form>
+            </section>
+
+            <section class="module-card">
+              <div class="module-head">
+                <div>
+                  <div class="module-label">Filter</div>
+                  <h2>Inbox focus</h2>
+                </div>
+                <div class="module-note">Scope communications by subject or type</div>
+              </div>
+              <div class="form-grid">
+                <select id="comms-filter-subject"></select>
+                <select id="comms-filter-type">
+                  <option value="">Any type</option>
+                  <option value="SMS">SMS</option>
+                  <option value="Call">Call</option>
+                  <option value="Voicemail">Voicemail</option>
+                </select>
+                <button class="btn btn-ghost" id="comms-filter-apply" type="button">Apply filters</button>
+              </div>
+            </section>
+          </div>
+
+          <section class="collection-shell">
+            <div class="collection-head">
+              <div>
+                <div class="module-label">Queue</div>
+                <h2>Communication records</h2>
+              </div>
+            </div>
+            <div class="list-grid" id="comms-list"></div>
+          </section>
         </section>
 
         <section class="panel" id="panel-email">
-          <div class="card stack">
-            <h2>Filter</h2>
-            <div class="form-grid">
-              <select id="emails-filter-subject"></select>
-              <select id="emails-filter-category">
-                <option value="">Any category</option>
-                <option value="Statement">Statement</option>
-                <option value="Approval">Approval</option>
-                <option value="Bank Notice">Bank Notice</option>
-                <option value="ATO Notice">ATO Notice</option>
-                <option value="General">General</option>
-              </select>
-              <button class="btn btn-ghost" id="emails-filter-apply" type="button">Apply</button>
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Email</div>
+              <h2>Mailbox workflow</h2>
             </div>
+            <div class="summary-pill" id="emails-summary">0 emails</div>
           </div>
 
-          <div class="list-grid" id="emails-list"></div>
+          <div class="content-grid split-layout">
+            <section class="module-card">
+              <div class="module-head">
+                <div>
+                  <div class="module-label">Filter</div>
+                  <h2>Focus the mailbox</h2>
+                </div>
+                <div class="module-note">Review by subject and email category</div>
+              </div>
+              <div class="form-grid">
+                <select id="emails-filter-subject"></select>
+                <select id="emails-filter-category">
+                  <option value="">Any category</option>
+                  <option value="Statement">Statement</option>
+                  <option value="Approval">Approval</option>
+                  <option value="Bank Notice">Bank Notice</option>
+                  <option value="ATO Notice">ATO Notice</option>
+                  <option value="General">General</option>
+                </select>
+                <button class="btn btn-ghost" id="emails-filter-apply" type="button">Apply filters</button>
+              </div>
+            </section>
+
+            <section class="module-card subtle-gradient">
+              <div class="module-head">
+                <div>
+                  <div class="module-label">Meaning</div>
+                  <h2>Mail signal</h2>
+                </div>
+                <div class="module-note">Flagged mail is surfaced for deliberate review.</div>
+              </div>
+              <div class="meta">Green and blue highlights indicate stronger opportunity or value; warm tones suggest review pressure.</div>
+            </section>
+          </div>
+
+          <section class="collection-shell">
+            <div class="collection-head">
+              <div>
+                <div class="module-label">Mailbox</div>
+                <h2>Email records</h2>
+              </div>
+            </div>
+            <div class="list-grid" id="emails-list"></div>
+          </section>
         </section>
 
         <section class="panel" id="panel-alerts">
-          <div class="card stack">
-            <h2>Filter</h2>
-            <div class="form-grid">
-              <select id="alerts-filter-type">
-                <option value="">Any type</option>
-                <option value="Stalled App">Stalled App</option>
-                <option value="Score Drop">Score Drop</option>
-                <option value="Verification">Verification</option>
-                <option value="New Comm">New Comm</option>
-                <option value="Utilisation">Utilisation</option>
-                <option value="Dormant">Dormant</option>
-                <option value="Application">Application</option>
-                <option value="ClearScore">ClearScore</option>
-              </select>
-              <button class="btn btn-ghost" id="alerts-filter-apply" type="button">Apply</button>
-              <button class="btn btn-danger" id="alerts-mark-all" type="button">Mark All Read</button>
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">Alerts</div>
+              <h2>Action queue</h2>
             </div>
+            <div class="summary-pill" id="alerts-summary">0 alerts</div>
           </div>
 
-          <div class="list-grid" id="alerts-list"></div>
+          <div class="content-grid split-layout">
+            <section class="module-card">
+              <div class="module-head">
+                <div>
+                  <div class="module-label">Filter</div>
+                  <h2>Prioritise the queue</h2>
+                </div>
+                <div class="module-note">Surface only what matters right now</div>
+              </div>
+              <div class="form-grid">
+                <select id="alerts-filter-type">
+                  <option value="">Any type</option>
+                  <option value="Stalled App">Stalled App</option>
+                  <option value="Score Drop">Score Drop</option>
+                  <option value="Verification">Verification</option>
+                  <option value="New Comm">New Comm</option>
+                  <option value="Utilisation">Utilisation</option>
+                  <option value="Dormant">Dormant</option>
+                  <option value="Application">Application</option>
+                  <option value="ClearScore">ClearScore</option>
+                </select>
+                <button class="btn btn-ghost" id="alerts-filter-apply" type="button">Apply filters</button>
+                <button class="btn btn-danger" id="alerts-mark-all" type="button">Mark all read</button>
+              </div>
+            </section>
+
+            <section class="module-card subtle-gradient">
+              <div class="module-head">
+                <div>
+                  <div class="module-label">Priority</div>
+                  <h2>Deliberate colour map</h2>
+                </div>
+                <div class="module-note">Critical is warm, strong is green, neutral stays quiet.</div>
+              </div>
+              <div class="meta">The queue is designed to feel light and controlled, with bold accents used only where urgency or strength should stand out.</div>
+            </section>
+          </div>
+
+          <section class="collection-shell">
+            <div class="collection-head">
+              <div>
+                <div class="module-label">Queue</div>
+                <h2>Alert records</h2>
+              </div>
+            </div>
+            <div class="list-grid" id="alerts-list"></div>
+          </section>
         </section>
       </main>
     </div>
-
-    <button class="fab" type="button" id="btn-refresh-fab">Expand Nexus</button>
 
     <script type="module" src="/ui/app.js"></script>
   </body>

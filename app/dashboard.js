@@ -22,12 +22,27 @@ const tabs = {
   alerts: document.getElementById("panel-alerts"),
 };
 
-const titleMap = {
-  warroom: "War Room",
-  subjects: "Subjects",
-  comms: "Comms",
-  email: "Email",
-  alerts: "Alerts",
+const tabConfig = {
+  warroom: {
+    title: "War Room",
+    subtitle: "Overview of live power, credentials and next actions.",
+  },
+  subjects: {
+    title: "Subjects",
+    subtitle: "Airtable-style roster workflow for creation, filtering and action.",
+  },
+  comms: {
+    title: "Comms",
+    subtitle: "Capture communications, focus the queue, and clear unread signal.",
+  },
+  email: {
+    title: "Email",
+    subtitle: "Mailbox review surface for flagged items, read state and category flow.",
+  },
+  alerts: {
+    title: "Alerts",
+    subtitle: "Purposeful action queue with colour reserved for urgency and strength.",
+  },
 };
 
 function setStatus(text, mode = "warn") {
@@ -46,10 +61,10 @@ function setAuthUser(user) {
   if (user) {
     el.textContent = user.email;
     el.className = "pill pill-ok";
-  } else {
-    el.textContent = "Guest";
-    el.className = "pill";
+    return;
   }
+  el.textContent = "Guest";
+  el.className = "pill";
 }
 
 function trpcInput(input) {
@@ -99,16 +114,11 @@ function selectTab(key) {
   document.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.tab === key);
   });
-  Object.entries(tabs).forEach(([k, panel]) => {
-    panel.classList.toggle("active", k === key);
+  Object.entries(tabs).forEach(([tabKey, panel]) => {
+    panel.classList.toggle("active", tabKey === key);
   });
-  document.getElementById("tab-title").textContent = titleMap[key];
-}
-
-function makeBadgeClass(base, value) {
-  if (value === "Critical" || value === "At Risk") return `${base} critical`;
-  if (value === "Warning" || value === "Pending" || value === "Stalled") return `${base} warn`;
-  return base;
+  document.getElementById("tab-title").textContent = tabConfig[key].title;
+  document.getElementById("tab-subtitle").textContent = tabConfig[key].subtitle;
 }
 
 function escapeHtml(value) {
@@ -120,48 +130,164 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function emptyState(text) {
+  return `<div class="empty-state">${escapeHtml(text)}</div>`;
+}
+
+function makeBadgeClass(base, value) {
+  if (value === "Critical" || value === "At Risk") return `${base} critical`;
+  if (value === "Warning" || value === "Pending" || value === "Stalled") return `${base} warn`;
+  if (value === "Active" || value === "Approved" || value === "Info") return `${base} success`;
+  return base;
+}
+
+function scoreClass(score) {
+  if (score >= 85) return "score-chip success";
+  if (score >= 65) return "score-chip";
+  if (score >= 45) return "score-chip warn";
+  return "score-chip critical";
+}
+
+function formatNumber(value) {
+  return new Intl.NumberFormat("en-AU").format(Number(value || 0));
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency: "AUD",
+    maximumFractionDigits: 0,
+  }).format(Number(value || 0));
+}
+
+function formatCompact(value) {
+  return new Intl.NumberFormat("en-AU", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(Number(value || 0));
+}
+
+function relativeTime(value) {
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return "Unknown";
+  const diffMinutes = Math.round((Date.now() - timestamp) / 60000);
+  if (diffMinutes < 1) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes} min ago`;
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} hr ago`;
+  const diffDays = Math.round(diffHours / 24);
+  return `${diffDays} day ago`;
+}
+
+function updateNavCounts() {
+  document.getElementById("nav-warroom-count").textContent = String(
+    state.dashboard?.urgentCount ?? 0
+  );
+  document.getElementById("nav-subjects-count").textContent = String(state.subjects.length);
+  document.getElementById("nav-comms-count").textContent = String(
+    state.comms.filter((item) => !item.isRead).length
+  );
+  document.getElementById("nav-email-count").textContent = String(
+    state.emails.filter((item) => !item.isRead).length
+  );
+  document.getElementById("nav-alerts-count").textContent = String(
+    state.alerts.filter((item) => !item.isRead).length
+  );
+}
+
 function renderWarRoom() {
-  const stats = document.getElementById("warroom-stats");
-  const d = state.dashboard;
-  const total = d?.totalCount ?? state.subjects.length;
-  const active = d?.activeCount ?? 0;
-  const power = total > 0 ? Math.round((active / total) * 100) : 0;
-  const list = [
-    ["Current Applications", d?.currentApplicationsTotal ?? 0, false],
-    ["Total Subjects", total, false],
-    ["Unread Comms", d?.unreadComms ?? 0, false],
-    ["Unread Emails", d?.unreadEmails ?? 0, false],
-    ["Urgent Actions", d?.urgentCount ?? 0, false],
-    ["Total Firepower", Math.round(d?.totalFirepower ?? 0), true],
-    ["Monthly Burn", Math.round(d?.monthlyBurn ?? 0), false],
+  const dashboard = state.dashboard;
+  const totalSubjects = dashboard?.totalCount ?? state.subjects.length;
+  const activeSubjects = dashboard?.activeCount ?? 0;
+  const power = totalSubjects > 0 ? Math.round((activeSubjects / totalSubjects) * 100) : 0;
+  const heroPower = document.getElementById("hero-power-value");
+  heroPower.textContent = `${power}%`;
+  heroPower.className = `hero-meter-value ${power >= 75 ? "rating-high" : "rating-neutral"}`;
+  document.getElementById("hero-power-sub").textContent = `${activeSubjects} active of ${totalSubjects} subjects`;
+
+  const stats = [
+    ["Current applications", dashboard?.currentApplicationsTotal ?? 0, false],
+    ["Total subjects", totalSubjects, false],
+    ["Unread comms", dashboard?.unreadComms ?? 0, false],
+    ["Unread emails", dashboard?.unreadEmails ?? 0, false],
+    ["Urgent actions", dashboard?.urgentCount ?? 0, false],
+    ["Total firepower", formatCompact(dashboard?.totalFirepower ?? 0), true],
+    ["Monthly burn", formatCurrency(dashboard?.monthlyBurn ?? 0), false],
   ];
 
-  stats.innerHTML = list
+  document.getElementById("warroom-stats").innerHTML = stats
     .map(([label, value, isPower]) => {
-      const cls = isPower ? "stat-value power" : "stat-value";
-      return `<div class="stat"><div class="stat-label">${label}</div><div class="${cls}">${value}</div></div>`;
+      const valueClass = isPower ? "stat-value power" : "stat-value";
+      return `<div class="stat-card"><div class="stat-title">${escapeHtml(label)}</div><div class="${valueClass}">${escapeHtml(value)}</div></div>`;
     })
     .join("");
 
-  const heroPower = document.getElementById("hero-power-value");
-  heroPower.textContent = `${power}%`;
-  heroPower.className = power >= 85 ? "rating-high" : "rating-neutral";
-
   const longest = document.getElementById("longest-active");
-  if (d?.longestActive) {
-    longest.innerHTML = `<div class="row-head"><span>Longest Active Application</span><span class="badge warn">${escapeHtml(d.longestActive.bank)}</span></div><div class="meta">${escapeHtml(d.longestActive.subjectName)} · Submitted ${new Date(d.longestActive.submittedDate).toLocaleDateString()}</div>`;
+  if (dashboard?.longestActive) {
+    longest.innerHTML = `<div class="row-head"><div><div class="module-label">Longest active application</div><div class="record-title">${escapeHtml(dashboard.longestActive.subjectName)}</div></div><span class="badge warn">${escapeHtml(dashboard.longestActive.bank)}</span></div><div class="meta">Submitted ${new Date(dashboard.longestActive.submittedDate).toLocaleDateString()}</div>`;
   } else {
-    longest.innerHTML = `<div class="meta">No active application data yet.</div>`;
+    longest.innerHTML = `<div class="module-label">Longest active application</div><div class="meta">No active application data yet.</div>`;
   }
+
+  const priorityItems = [];
+  if ((dashboard?.urgentCount ?? 0) > 0) {
+    priorityItems.push({
+      title: `${dashboard.urgentCount} urgent alert${dashboard.urgentCount === 1 ? "" : "s"}`,
+      meta: "Critical items should be reviewed first.",
+      badge: "Critical",
+    });
+  }
+  if ((dashboard?.unreadEmails ?? 0) > 0) {
+    priorityItems.push({
+      title: `${dashboard.unreadEmails} unread email${dashboard.unreadEmails === 1 ? "" : "s"}`,
+      meta: "Flagged and unread mail is ready for triage.",
+      badge: "Inbox",
+    });
+  }
+  if ((dashboard?.unreadComms ?? 0) > 0) {
+    priorityItems.push({
+      title: `${dashboard.unreadComms} unread communication${dashboard.unreadComms === 1 ? "" : "s"}`,
+      meta: "Calls, SMS, and voicemail require acknowledgement.",
+      badge: "Comms",
+    });
+  }
+  if ((dashboard?.currentApplicationsTotal ?? 0) > 0) {
+    priorityItems.push({
+      title: `${dashboard.currentApplicationsTotal} application${dashboard.currentApplicationsTotal === 1 ? "" : "s"} in motion`,
+      meta: "Keep submitted and in-review items moving.",
+      badge: "Pipeline",
+    });
+  }
+
+  document.getElementById("priority-queue").innerHTML = priorityItems.length
+    ? priorityItems
+        .map(
+          (item) => `<div class="queue-item"><div class="queue-top"><div class="record-title">${escapeHtml(item.title)}</div><span class="badge ${item.badge === "Critical" ? "critical" : item.badge === "Pipeline" ? "success" : ""}">${escapeHtml(item.badge)}</span></div><div class="meta">${escapeHtml(item.meta)}</div></div>`
+        )
+        .join("")
+    : emptyState("No priority items right now.");
+
+  const focusItems = state.subjects
+    .slice()
+    .sort((a, b) => b.healthScore - a.healthScore)
+    .slice(0, 4)
+    .map((subject) => {
+      return `<div class="focus-card"><div class="focus-top"><div class="focus-name">${escapeHtml(subject.name)}</div><span class="${scoreClass(subject.healthScore)}">Score ${escapeHtml(subject.healthScore)}</span></div><div class="meta">${escapeHtml(subject.status)} · ${escapeHtml(subject.type)} · ${escapeHtml(subject.assignedEmail)}</div><div class="meta">Available headroom ${escapeHtml(formatCurrency(subject.creditLimit * (1 - subject.utilisationPercent / 100)))}</div></div>`;
+    })
+    .join("");
+
+  document.getElementById("focus-roster").innerHTML = focusItems || emptyState("No subject data available.");
 }
 
 function renderActivity() {
   const rows = state.alerts
     .slice(0, 6)
-    .map((a) => {
-      const high = a.priority === "Critical" || a.priority === "Warning";
-      const ratingClass = high ? "rating-high" : "rating-neutral";
-      return `<tr><td>${escapeHtml(a.title)}</td><td class="${ratingClass}">${escapeHtml(a.message)}</td><td>${new Date(a.timestamp).toLocaleTimeString()}</td></tr>`;
+    .map((alert) => {
+      const ratingClass =
+        alert.priority === "Critical" || alert.priority === "Warning"
+          ? "rating-high"
+          : "rating-neutral";
+      return `<tr><td>${escapeHtml(alert.title)}</td><td class="${ratingClass}">${escapeHtml(alert.message)}</td><td>${escapeHtml(relativeTime(alert.timestamp))}</td></tr>`;
     })
     .join("");
 
@@ -170,93 +296,116 @@ function renderActivity() {
 }
 
 function renderSubjectOptions() {
-  const options = [`<option value="">All subjects</option>`]
-    .concat(
-      state.subjects.map(
-        (s) => `<option value="${s.id}">${escapeHtml(s.name)}</option>`
-      )
-    )
+  const allOptions = state.subjects
+    .map((subject) => `<option value="${subject.id}">${escapeHtml(subject.name)}</option>`)
     .join("");
 
-  ["comm-subject", "comms-filter-subject", "emails-filter-subject"].forEach((id) => {
+  const sharedOptions = `<option value="">All subjects</option>${allOptions}`;
+  const createOptions = `<option value="">Select subject</option>${allOptions}`;
+
+  ["comms-filter-subject", "emails-filter-subject"].forEach((id) => {
     const el = document.getElementById(id);
-    if (!el) return;
     const current = el.value;
-    el.innerHTML = id === "comm-subject" ? options.replace("All subjects", "Select subject") : options;
-    if (current && state.subjects.some((s) => s.id === current)) {
+    el.innerHTML = sharedOptions;
+    if (current && state.subjects.some((subject) => subject.id === current)) {
       el.value = current;
     }
   });
+
+  const createEl = document.getElementById("comm-subject");
+  const currentCreate = createEl.value;
+  createEl.innerHTML = createOptions;
+  if (currentCreate && state.subjects.some((subject) => subject.id === currentCreate)) {
+    createEl.value = currentCreate;
+  }
 }
 
 function getFilteredSubjects() {
-  return state.subjects.filter((s) => {
+  return state.subjects.filter((subject) => {
     const search = state.filters.subjects.search.toLowerCase();
-    const searchOk =
+    const matchesSearch =
       !search ||
-      s.name.toLowerCase().includes(search) ||
-      s.assignedEmail.toLowerCase().includes(search) ||
-      s.assignedPhone.toLowerCase().includes(search);
-    const statusOk = !state.filters.subjects.status || s.status === state.filters.subjects.status;
-    return searchOk && statusOk;
+      subject.name.toLowerCase().includes(search) ||
+      subject.assignedEmail.toLowerCase().includes(search) ||
+      subject.assignedPhone.toLowerCase().includes(search);
+    const matchesStatus =
+      !state.filters.subjects.status || subject.status === state.filters.subjects.status;
+    return matchesSearch && matchesStatus;
   });
 }
 
 function renderSubjects() {
-  const rows = getFilteredSubjects()
-    .map((s) => {
-      const badgeClass = makeBadgeClass("badge", s.status);
-      const checked = s.isFlagged ? "checked" : "";
-      return `<div class="row-card"><div class="row-head"><span>${escapeHtml(s.name)}</span><span class="${badgeClass}">${escapeHtml(s.status)}</span></div><div class="meta">Score ${s.healthScore} · ${escapeHtml(s.type)} · ${escapeHtml(s.assignedEmail)} · ${escapeHtml(s.assignedPhone)}</div><div class="row-actions"><button class="btn btn-ghost" data-action="subject-edit" data-id="${s.id}" type="button">Update</button><button class="btn btn-ghost" data-action="subject-flag" data-id="${s.id}" type="button">${checked ? "Unflag" : "Flag"}</button><button class="btn btn-danger" data-action="subject-archive" data-id="${s.id}" type="button">Archive</button></div></div>`;
-    })
-    .join("");
+  const items = getFilteredSubjects()
+    .slice()
+    .sort((a, b) => Number(b.isFlagged) - Number(a.isFlagged) || b.healthScore - a.healthScore);
 
-  document.getElementById("subjects-list").innerHTML = rows || `<div class="meta">No subjects found.</div>`;
+  document.getElementById("subjects-summary").textContent = `${items.length} subject${items.length === 1 ? "" : "s"}`;
+
+  document.getElementById("subjects-list").innerHTML = items.length
+    ? items
+        .map((subject) => {
+          const statusClass = makeBadgeClass("badge", subject.status);
+          const flagLabel = subject.isFlagged ? "Unflag" : "Flag";
+          return `<div class="record-card"><div class="record-top"><div class="record-main"><div class="record-title">${escapeHtml(subject.name)}</div><div class="meta">${escapeHtml(subject.notes || "No notes")} </div></div><div class="record-tags"><span class="${statusClass}">${escapeHtml(subject.status)}</span><span class="${scoreClass(subject.healthScore)}">Score ${escapeHtml(subject.healthScore)}</span></div></div><div class="record-grid"><div><span class="field-label">Type</span><span class="field-value">${escapeHtml(subject.type)}</span></div><div><span class="field-label">Email</span><span class="field-value">${escapeHtml(subject.assignedEmail)}</span></div><div><span class="field-label">Phone</span><span class="field-value">${escapeHtml(subject.assignedPhone)}</span></div><div><span class="field-label">Credit limit</span><span class="field-value">${escapeHtml(formatCurrency(subject.creditLimit))}</span></div><div><span class="field-label">Utilisation</span><span class="field-value">${escapeHtml(subject.utilisationPercent)}%</span></div><div><span class="field-label">Applications</span><span class="field-value">${escapeHtml(subject.applications.length)}</span></div></div><div class="row-actions"><button class="btn btn-ghost" data-action="subject-edit" data-id="${subject.id}" type="button">Update</button><button class="btn btn-ghost" data-action="subject-flag" data-id="${subject.id}" type="button">${flagLabel}</button><button class="btn btn-danger" data-action="subject-archive" data-id="${subject.id}" type="button">Archive</button></div></div>`;
+        })
+        .join("")
+    : emptyState("No subjects match the current filters.");
 }
 
 function renderComms() {
-  const rows = state.comms
-    .map((c) => {
-      const unread = c.isRead ? "" : "warn";
-      const readAction = c.isRead
-        ? ""
-        : `<button class="btn btn-ghost" data-action="comm-mark-read" data-id="${c.id}" type="button">Mark Read</button>`;
-      return `<div class="row-card"><div class="row-head"><span>${escapeHtml(c.sender)}</span><span class="badge ${unread}">${escapeHtml(c.type)}</span></div><div class="meta">${escapeHtml(c.entityName)} · ${escapeHtml(c.content)}</div><div class="meta">${new Date(c.timestamp).toLocaleString()}</div><div class="row-actions">${readAction}</div></div>`;
-    })
-    .join("");
+  const unreadCount = state.comms.filter((item) => !item.isRead).length;
+  document.getElementById("comms-summary").textContent = `${state.comms.length} items · ${unreadCount} unread`;
 
-  document.getElementById("comms-list").innerHTML = rows || `<div class="meta">No communications found.</div>`;
+  document.getElementById("comms-list").innerHTML = state.comms.length
+    ? state.comms
+        .map((comm) => {
+          const typeClass = comm.isRead ? "badge" : "badge warn";
+          const readButton = comm.isRead
+            ? ""
+            : `<button class="btn btn-ghost" data-action="comm-mark-read" data-id="${comm.id}" type="button">Mark read</button>`;
+          return `<div class="record-card"><div class="record-top"><div class="record-main"><div class="record-title">${escapeHtml(comm.sender)}</div><div class="meta">${escapeHtml(comm.entityName)} · ${escapeHtml(comm.content)}</div></div><div class="record-tags"><span class="${typeClass}">${escapeHtml(comm.type)}</span></div></div><div class="record-grid"><div><span class="field-label">Phone</span><span class="field-value">${escapeHtml(comm.phoneNumber)}</span></div><div><span class="field-label">Time</span><span class="field-value">${escapeHtml(new Date(comm.timestamp).toLocaleString())}</span></div><div><span class="field-label">Duration</span><span class="field-value">${escapeHtml(comm.duration ?? "—")}</span></div><div><span class="field-label">Transcription</span><span class="field-value">${escapeHtml(comm.transcription || "—")}</span></div></div><div class="row-actions">${readButton}</div></div>`;
+        })
+        .join("")
+    : emptyState("No communications found for the current filter.");
 }
 
 function renderEmails() {
-  const rows = state.emails
-    .map((e) => {
-      const badgeClass = e.isFlagged ? "badge warn" : "badge";
-      const readAction = e.isRead
-        ? ""
-        : `<button class="btn btn-ghost" data-action="email-mark-read" data-id="${e.id}" type="button">Mark Read</button>`;
-      return `<div class="row-card"><div class="row-head"><span>${escapeHtml(e.subject)}</span><span class="${badgeClass}">${escapeHtml(e.category)}</span></div><div class="meta">${escapeHtml(e.entityName)} · ${escapeHtml(e.senderAddress)}</div><div class="meta">${escapeHtml(e.snippet)}</div><div class="row-actions">${readAction}<button class="btn btn-ghost" data-action="email-toggle-flag" data-id="${e.id}" type="button">${e.isFlagged ? "Unflag" : "Flag"}</button></div></div>`;
-    })
-    .join("");
+  const unreadCount = state.emails.filter((item) => !item.isRead).length;
+  const flaggedCount = state.emails.filter((item) => item.isFlagged).length;
+  document.getElementById("emails-summary").textContent = `${state.emails.length} emails · ${unreadCount} unread · ${flaggedCount} flagged`;
 
-  document.getElementById("emails-list").innerHTML = rows || `<div class="meta">No emails found.</div>`;
+  document.getElementById("emails-list").innerHTML = state.emails.length
+    ? state.emails
+        .map((email) => {
+          const badgeClass = email.isFlagged ? "badge warn" : "badge";
+          const readButton = email.isRead
+            ? ""
+            : `<button class="btn btn-ghost" data-action="email-mark-read" data-id="${email.id}" type="button">Mark read</button>`;
+          return `<div class="record-card"><div class="record-top"><div class="record-main"><div class="record-title">${escapeHtml(email.subject)}</div><div class="meta">${escapeHtml(email.entityName)} · ${escapeHtml(email.senderAddress)}</div></div><div class="record-tags"><span class="${badgeClass}">${escapeHtml(email.category)}</span>${email.containsDollarAmount ? '<span class="badge success">Value</span>' : ""}</div></div><div class="record-grid"><div><span class="field-label">Sender</span><span class="field-value">${escapeHtml(email.sender)}</span></div><div><span class="field-label">Alias</span><span class="field-value">${escapeHtml(email.alias)}</span></div><div><span class="field-label">Time</span><span class="field-value">${escapeHtml(new Date(email.timestamp).toLocaleString())}</span></div><div><span class="field-label">Snippet</span><span class="field-value">${escapeHtml(email.snippet)}</span></div></div><div class="row-actions">${readButton}<button class="btn btn-ghost" data-action="email-toggle-flag" data-id="${email.id}" type="button">${email.isFlagged ? "Unflag" : "Flag"}</button></div></div>`;
+        })
+        .join("")
+    : emptyState("No emails found for the current filter.");
 }
 
 function renderAlerts() {
-  const rows = state.alerts
-    .map((a) => {
-      const badgeClass = makeBadgeClass("badge", a.priority);
-      const readAction = a.isRead
-        ? ""
-        : `<button class="btn btn-ghost" data-action="alert-mark-read" data-id="${a.id}" type="button">Mark Read</button>`;
-      return `<div class="row-card"><div class="row-head"><span>${escapeHtml(a.title)}</span><span class="${badgeClass}">${escapeHtml(a.priority)}</span></div><div class="meta">${escapeHtml(a.entityName ?? "Global")} · ${escapeHtml(a.type)}</div><div class="meta">${escapeHtml(a.message)}</div><div class="row-actions">${readAction}</div></div>`;
-    })
-    .join("");
+  const unreadCount = state.alerts.filter((item) => !item.isRead).length;
+  document.getElementById("alerts-summary").textContent = `${state.alerts.length} alerts · ${unreadCount} unread`;
 
-  document.getElementById("alerts-list").innerHTML = rows || `<div class="meta">No alerts found.</div>`;
+  document.getElementById("alerts-list").innerHTML = state.alerts.length
+    ? state.alerts
+        .map((alert) => {
+          const priorityClass = makeBadgeClass("badge", alert.priority);
+          const readButton = alert.isRead
+            ? ""
+            : `<button class="btn btn-ghost" data-action="alert-mark-read" data-id="${alert.id}" type="button">Mark read</button>`;
+          return `<div class="record-card"><div class="record-top"><div class="record-main"><div class="record-title">${escapeHtml(alert.title)}</div><div class="meta">${escapeHtml(alert.message)}</div></div><div class="record-tags"><span class="${priorityClass}">${escapeHtml(alert.priority)}</span><span class="badge">${escapeHtml(alert.type)}</span></div></div><div class="record-grid"><div><span class="field-label">Entity</span><span class="field-value">${escapeHtml(alert.entityName || "Global")}</span></div><div><span class="field-label">Time</span><span class="field-value">${escapeHtml(new Date(alert.timestamp).toLocaleString())}</span></div><div><span class="field-label">State</span><span class="field-value">${escapeHtml(alert.isRead ? "Read" : "Unread")}</span></div></div><div class="row-actions">${readButton}</div></div>`;
+        })
+        .join("")
+    : emptyState("No alerts found for the current filter.");
 }
 
 function renderAll() {
+  updateNavCounts();
   renderWarRoom();
   renderActivity();
   renderSubjectOptions();
@@ -268,8 +417,8 @@ function renderAll() {
 
 function parseNumber(value) {
   if (value === "" || value == null) return undefined;
-  const n = Number(value);
-  return Number.isFinite(n) ? n : undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
 }
 
 async function loadDashboard() {
@@ -284,7 +433,10 @@ async function loadComms() {
   const input = {};
   if (state.filters.comms.subjectId) input.subjectId = state.filters.comms.subjectId;
   if (state.filters.comms.type) input.type = state.filters.comms.type;
-  state.comms = await trpcQuery("communications.list", Object.keys(input).length ? input : undefined);
+  state.comms = await trpcQuery(
+    "communications.list",
+    Object.keys(input).length ? input : undefined
+  );
 }
 
 async function loadEmails() {
@@ -309,9 +461,9 @@ async function refreshAll() {
   try {
     await loadAllData();
     setStatus("Live", "ok");
-  } catch (err) {
+  } catch (error) {
     setStatus("Offline", "bad");
-    setAuthMessage(String(err));
+    setAuthMessage(String(error));
   }
 }
 
@@ -344,8 +496,8 @@ async function handleLoginSubmit(event) {
     setAuthUser(payload.user);
     setAuthMessage(`Logged in as ${payload.user.email}`);
     form.reset();
-  } catch (err) {
-    setAuthMessage(String(err));
+  } catch (error) {
+    setAuthMessage(String(error));
   }
 }
 
@@ -364,8 +516,8 @@ async function handleRegisterSubmit(event) {
     setAuthUser(payload.user);
     setAuthMessage(`Registered ${payload.user.email}`);
     form.reset();
-  } catch (err) {
-    setAuthMessage(String(err));
+  } catch (error) {
+    setAuthMessage(String(error));
   }
 }
 
@@ -384,20 +536,27 @@ async function handleCreateSubject(event) {
     });
     form.reset();
     await refreshAll();
-  } catch (err) {
-    setAuthMessage(String(err));
+    selectTab("subjects");
+  } catch (error) {
+    setAuthMessage(String(error));
   }
 }
 
 async function updateSubjectPrompt(id) {
-  const subject = state.subjects.find((s) => s.id === id);
+  const subject = state.subjects.find((item) => item.id === id);
   if (!subject) return;
 
   const name = prompt("Name", subject.name) ?? subject.name;
-  const status = prompt("Status (Active|Pending|Dormant|At Risk|Archived)", subject.status) ?? subject.status;
-  const healthScore = prompt("Health Score", String(subject.healthScore)) ?? String(subject.healthScore);
-  const creditLimit = prompt("Credit Limit", String(subject.creditLimit)) ?? String(subject.creditLimit);
-  const monthlyBurn = prompt("Monthly Burn", String(subject.monthlyBurn)) ?? String(subject.monthlyBurn);
+  const status = prompt(
+    "Status (Active|Pending|Dormant|At Risk|Archived)",
+    subject.status
+  ) ?? subject.status;
+  const healthScore =
+    prompt("Health Score", String(subject.healthScore)) ?? String(subject.healthScore);
+  const creditLimit =
+    prompt("Credit Limit", String(subject.creditLimit)) ?? String(subject.creditLimit);
+  const monthlyBurn =
+    prompt("Monthly Burn", String(subject.monthlyBurn)) ?? String(subject.monthlyBurn);
   const notes = prompt("Notes", subject.notes) ?? subject.notes;
 
   await trpcMutation("entities.update", {
@@ -417,7 +576,7 @@ async function handleCreateComm(event) {
   const form = event.currentTarget;
   const formData = new FormData(form);
   const subjectId = String(formData.get("subjectId") || "");
-  const subject = state.subjects.find((s) => s.id === subjectId);
+  const subject = state.subjects.find((item) => item.id === subjectId);
   if (!subject) {
     setAuthMessage("Please select a subject for communication creation");
     return;
@@ -436,16 +595,19 @@ async function handleCreateComm(event) {
     });
     form.reset();
     await refreshAll();
-  } catch (err) {
-    setAuthMessage(String(err));
+    selectTab("comms");
+  } catch (error) {
+    setAuthMessage(String(error));
   }
 }
 
 async function handleRootClick(event) {
   const target = event.target;
   if (!(target instanceof HTMLElement)) return;
-  const action = target.dataset.action;
-  const id = target.dataset.id;
+  const actionEl = target.closest("[data-action]");
+  if (!(actionEl instanceof HTMLElement)) return;
+  const action = actionEl.dataset.action;
+  const id = actionEl.dataset.id;
   if (!action || !id) return;
 
   try {
@@ -482,8 +644,8 @@ async function handleRootClick(event) {
       await trpcMutation("alerts.markRead", { id });
       await refreshAll();
     }
-  } catch (err) {
-    setAuthMessage(String(err));
+  } catch (error) {
+    setAuthMessage(String(error));
   }
 }
 
@@ -493,8 +655,12 @@ function attachEventHandlers() {
   });
 
   document.getElementById("login-form").addEventListener("submit", handleLoginSubmit);
-  document.getElementById("register-form").addEventListener("submit", handleRegisterSubmit);
-  document.getElementById("subject-create-form").addEventListener("submit", handleCreateSubject);
+  document
+    .getElementById("register-form")
+    .addEventListener("submit", handleRegisterSubmit);
+  document
+    .getElementById("subject-create-form")
+    .addEventListener("submit", handleCreateSubject);
   document.getElementById("comm-create-form").addEventListener("submit", handleCreateComm);
 
   document.getElementById("btn-refresh-all").addEventListener("click", refreshAll);
@@ -505,8 +671,8 @@ function attachEventHandlers() {
       const me = await trpcQuery("auth.me");
       setAuthUser(me);
       setAuthMessage(`Current user ${me.email}`);
-    } catch (err) {
-      setAuthMessage(String(err));
+    } catch (error) {
+      setAuthMessage(String(error));
     }
   });
 
@@ -524,22 +690,31 @@ function attachEventHandlers() {
   });
 
   document.getElementById("comms-filter-apply").addEventListener("click", async () => {
-    state.filters.comms.subjectId = String(document.getElementById("comms-filter-subject").value || "");
+    state.filters.comms.subjectId = String(
+      document.getElementById("comms-filter-subject").value || ""
+    );
     state.filters.comms.type = String(document.getElementById("comms-filter-type").value || "");
     await loadComms();
+    updateNavCounts();
     renderComms();
   });
 
   document.getElementById("emails-filter-apply").addEventListener("click", async () => {
-    state.filters.emails.subjectId = String(document.getElementById("emails-filter-subject").value || "");
-    state.filters.emails.category = String(document.getElementById("emails-filter-category").value || "");
+    state.filters.emails.subjectId = String(
+      document.getElementById("emails-filter-subject").value || ""
+    );
+    state.filters.emails.category = String(
+      document.getElementById("emails-filter-category").value || ""
+    );
     await loadEmails();
+    updateNavCounts();
     renderEmails();
   });
 
   document.getElementById("alerts-filter-apply").addEventListener("click", async () => {
     state.filters.alerts.type = String(document.getElementById("alerts-filter-type").value || "");
     await loadAlerts();
+    updateNavCounts();
     renderAlerts();
     renderActivity();
   });
@@ -548,8 +723,8 @@ function attachEventHandlers() {
     try {
       await trpcMutation("alerts.markAllRead", null);
       await refreshAll();
-    } catch (err) {
-      setAuthMessage(String(err));
+    } catch (error) {
+      setAuthMessage(String(error));
     }
   });
 
