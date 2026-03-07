@@ -18,30 +18,155 @@
         <button class="tab-btn" data-tab="email">Email</button>
         <button class="tab-btn" data-tab="alerts">Alerts</button>
       </aside>
+
       <main class="main-view">
         <header class="topbar">
           <h1 id="tab-title">War Room</h1>
-          <div id="server-status" class="status-pill">Connecting</div>
+          <div class="topbar-right">
+            <div id="auth-status" class="status-pill">Guest</div>
+            <div id="server-status" class="status-pill">Connecting</div>
+          </div>
         </header>
 
         <section class="panel active" id="panel-warroom">
+          <div class="card stack">
+            <h2>Access</h2>
+            <form id="login-form" class="form-grid">
+              <input name="email" type="email" placeholder="Email" required />
+              <input name="password" type="password" placeholder="Password" required />
+              <button class="btn" type="submit">Login</button>
+            </form>
+            <form id="register-form" class="form-grid">
+              <input name="name" type="text" placeholder="Name" required />
+              <input name="email" type="email" placeholder="Email" required />
+              <input name="password" type="password" placeholder="Password (min 6)" required />
+              <button class="btn" type="submit">Register</button>
+            </form>
+            <div class="row-actions">
+              <button class="btn ghost" id="btn-refresh-all" type="button">Refresh All</button>
+              <button class="btn ghost" id="btn-me" type="button">Who Am I</button>
+              <button class="btn danger" id="btn-logout" type="button">Logout</button>
+            </div>
+            <div class="row-meta" id="auth-message">Use login/register to enable authenticated route checks.</div>
+          </div>
+
           <div class="stats-grid" id="warroom-stats"></div>
           <div class="card" id="longest-active"></div>
         </section>
 
         <section class="panel" id="panel-subjects">
+          <div class="card stack">
+            <h2>Create Subject</h2>
+            <form id="subject-create-form" class="form-grid four">
+              <input name="name" type="text" placeholder="Name" required />
+              <select name="type">
+                <option value="Person">Person</option>
+                <option value="Ltd">Ltd</option>
+                <option value="Trust">Trust</option>
+              </select>
+              <input name="creditLimit" type="number" min="0" placeholder="Credit Limit" required />
+              <input name="assignedPhone" type="text" placeholder="Assigned Phone" required />
+              <input name="assignedEmail" type="email" placeholder="Assigned Email" required />
+              <input name="notes" type="text" placeholder="Notes" />
+              <button class="btn" type="submit">Create</button>
+            </form>
+          </div>
+
+          <div class="card stack">
+            <h2>Filters</h2>
+            <div class="form-grid four">
+              <input id="subjects-search" type="text" placeholder="Search subject" />
+              <select id="subjects-status">
+                <option value="">Any status</option>
+                <option value="Active">Active</option>
+                <option value="Pending">Pending</option>
+                <option value="Dormant">Dormant</option>
+                <option value="At Risk">At Risk</option>
+                <option value="Archived">Archived</option>
+              </select>
+              <button class="btn ghost" id="subjects-filter-apply" type="button">Apply</button>
+            </div>
+          </div>
+
           <div class="card-table" id="subjects-list"></div>
         </section>
 
         <section class="panel" id="panel-comms">
+          <div class="card stack">
+            <h2>Create Communication</h2>
+            <form id="comm-create-form" class="form-grid four">
+              <select name="subjectId" id="comm-subject"></select>
+              <select name="type">
+                <option value="SMS">SMS</option>
+                <option value="Call">Call</option>
+                <option value="Voicemail">Voicemail</option>
+              </select>
+              <input name="sender" type="text" placeholder="Sender" required />
+              <input name="phoneNumber" type="text" placeholder="Phone Number" required />
+              <input name="content" type="text" placeholder="Content" required />
+              <input name="duration" type="number" min="0" placeholder="Duration seconds (optional)" />
+              <input name="transcription" type="text" placeholder="Transcription (optional)" />
+              <button class="btn" type="submit">Create</button>
+            </form>
+          </div>
+
+          <div class="card stack">
+            <h2>Filters</h2>
+            <div class="form-grid four">
+              <select id="comms-filter-subject"></select>
+              <select id="comms-filter-type">
+                <option value="">Any type</option>
+                <option value="SMS">SMS</option>
+                <option value="Call">Call</option>
+                <option value="Voicemail">Voicemail</option>
+              </select>
+              <button class="btn ghost" id="comms-filter-apply" type="button">Apply</button>
+            </div>
+          </div>
+
           <div class="card-table" id="comms-list"></div>
         </section>
 
         <section class="panel" id="panel-email">
+          <div class="card stack">
+            <h2>Filters</h2>
+            <div class="form-grid four">
+              <select id="emails-filter-subject"></select>
+              <select id="emails-filter-category">
+                <option value="">Any category</option>
+                <option value="Statement">Statement</option>
+                <option value="Approval">Approval</option>
+                <option value="Bank Notice">Bank Notice</option>
+                <option value="ATO Notice">ATO Notice</option>
+                <option value="General">General</option>
+              </select>
+              <button class="btn ghost" id="emails-filter-apply" type="button">Apply</button>
+            </div>
+          </div>
+
           <div class="card-table" id="emails-list"></div>
         </section>
 
         <section class="panel" id="panel-alerts">
+          <div class="card stack">
+            <h2>Filters</h2>
+            <div class="form-grid four">
+              <select id="alerts-filter-type">
+                <option value="">Any type</option>
+                <option value="Stalled App">Stalled App</option>
+                <option value="Score Drop">Score Drop</option>
+                <option value="Verification">Verification</option>
+                <option value="New Comm">New Comm</option>
+                <option value="Utilisation">Utilisation</option>
+                <option value="Dormant">Dormant</option>
+                <option value="Application">Application</option>
+                <option value="ClearScore">ClearScore</option>
+              </select>
+              <button class="btn ghost" id="alerts-filter-apply" type="button">Apply</button>
+              <button class="btn danger" id="alerts-mark-all" type="button">Mark All Read</button>
+            </div>
+          </div>
+
           <div class="card-table" id="alerts-list"></div>
         </section>
       </main>
