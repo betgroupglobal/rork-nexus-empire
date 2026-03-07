@@ -1,73 +1,5 @@
 import Foundation
 
-nonisolated struct TRPCResponse<T: Decodable & Sendable>: Decodable, Sendable {
-    let result: TRPCResult<T>
-}
-
-nonisolated struct TRPCResult<T: Decodable & Sendable>: Decodable, Sendable {
-    let data: TRPCData<T>
-}
-
-nonisolated struct TRPCData<T: Decodable & Sendable>: Decodable, Sendable {
-    let json: T
-}
-
-nonisolated struct TRPCErrorResponse: Decodable, Sendable {
-    let error: TRPCErrorBody
-}
-
-nonisolated struct TRPCErrorBody: Decodable, Sendable {
-    let message: String?
-    let code: Int?
-    let data: TRPCErrorData?
-}
-
-nonisolated struct TRPCErrorData: Decodable, Sendable {
-    let code: String?
-    let httpStatus: Int?
-    let message: String?
-}
-
-nonisolated struct DashboardResponse: Codable, Sendable {
-    let totalFirepower: Double
-    let monthlyBurn: Double
-    let activeCount: Int
-    let totalCount: Int
-    let urgentCount: Int
-    let unreadComms: Int
-    let unreadEmails: Int
-}
-
-nonisolated struct SuccessResponse: Codable, Sendable {
-    let success: Bool
-}
-
-nonisolated enum APIError: Error, LocalizedError, Sendable {
-    case invalidURL
-    case serverError(Int, String)
-    case notConfigured
-
-    nonisolated var errorDescription: String? {
-        switch self {
-        case .invalidURL: "Unable to connect to server"
-        case .serverError(_, let message): message
-        case .notConfigured: "API not configured"
-        }
-    }
-}
-
-nonisolated struct SuperJSONInput<T: Encodable & Sendable>: Encodable, Sendable {
-    let json: T
-}
-
-nonisolated struct IDInput: Codable, Sendable {
-    let id: String
-}
-
-nonisolated struct EmptyInput: Codable, Sendable {}
-
-
-
 @MainActor
 class NexusAPIService {
     static let shared = NexusAPIService()
@@ -121,9 +53,7 @@ class NexusAPIService {
         }
 
         let (data, response) = try await session.data(for: request)
-
         try Self.checkHTTPError(data: data, response: response, decoder: decoder)
-
         let trpcResponse = try decoder.decode(TRPCResponse<T>.self, from: data)
         return trpcResponse.result.data.json
     }
@@ -145,9 +75,7 @@ class NexusAPIService {
         request.httpBody = try encoder.encode(SuperJSONInput(json: AnyEncodable(input)))
 
         let (data, response) = try await session.data(for: request)
-
         try Self.checkHTTPError(data: data, response: response, decoder: decoder)
-
         let trpcResponse = try decoder.decode(TRPCResponse<T>.self, from: data)
         return trpcResponse.result.data.json
     }
@@ -206,18 +134,13 @@ class NexusAPIService {
         let _: SuccessResponse = try await performMutation(procedure: "alerts.markAllRead", input: EmptyInput())
     }
 
-    func fetchEntities() async throws -> [Entity] {
+    func fetchSubjects() async throws -> [Subject] {
         let dtos: [EntityDTO] = try await performQuery(procedure: "entities.list")
         return dtos.map { $0.toModel() }
     }
 
     func fetchDashboard() async throws -> DashboardResponse {
         try await performQuery(procedure: "entities.dashboard")
-    }
-
-    func fetchEntity(id: String) async throws -> Entity {
-        let dto: EntityDTO = try await performQuery(procedure: "entities.getById", input: IDInput(id: id))
-        return dto.toModel()
     }
 
     func checkHealth() async throws -> BackendHealthResponse {

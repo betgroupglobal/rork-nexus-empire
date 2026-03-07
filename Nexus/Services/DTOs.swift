@@ -23,7 +23,9 @@ nonisolated struct CommunicationDTO: Codable, Sendable {
             isRead: isRead,
             phoneNumber: phoneNumber,
             duration: duration,
-            transcription: transcription
+            transcription: transcription,
+            subjectId: entityId,
+            subjectName: entityName
         )
     }
 }
@@ -44,18 +46,28 @@ nonisolated struct EmailDTO: Codable, Sendable {
     let alias: String
 
     func toModel() -> EmailMessage {
-        EmailMessage(
+        let categoryMap: [String: EmailCategory] = [
+            "Statement": .statement,
+            "Approval": .approval,
+            "Bank Notice": .bankNotice,
+            "ATO Notice": .ird,
+            "IRD": .ird,
+            "General": .general
+        ]
+        return EmailMessage(
             id: UUID(uuidString: id) ?? UUID(),
             sender: sender,
             senderAddress: senderAddress,
             subject: subject,
             snippet: snippet,
-            category: EmailCategory(rawValue: category) ?? .general,
+            category: categoryMap[category] ?? .general,
             timestamp: ISO8601DateFormatter().date(from: timestamp) ?? Date(),
             isRead: isRead,
             isFlagged: isFlagged,
             containsDollarAmount: containsDollarAmount,
-            alias: alias
+            alias: alias,
+            subjectId: entityId,
+            subjectName: entityName
         )
     }
 }
@@ -72,14 +84,26 @@ nonisolated struct AlertDTO: Codable, Sendable {
     let isRead: Bool
 
     func toModel() -> NexusAlert {
-        NexusAlert(
+        let typeMap: [String: AlertType] = [
+            "Stalled App": .stalledApplication,
+            "Score Drop": .scoreDrop,
+            "Verification": .verificationBlock,
+            "New Comm": .newComm,
+            "Utilisation": .utilisationSpike,
+            "ClearScore": .scoreDrop,
+            "Dormant": .stalledApplication,
+            "Application": .stalledApplication
+        ]
+        return NexusAlert(
             id: UUID(uuidString: id) ?? UUID(),
-            type: AlertType(rawValue: type) ?? .newComm,
+            type: typeMap[type] ?? .newComm,
             priority: AlertPriority(rawValue: priority) ?? .info,
             title: title,
             message: message,
             timestamp: ISO8601DateFormatter().date(from: timestamp) ?? Date(),
-            isRead: isRead
+            isRead: isRead,
+            subjectId: entityId,
+            subjectName: entityName
         )
     }
 }
@@ -101,24 +125,31 @@ nonisolated struct EntityDTO: Codable, Sendable {
     let notes: String
     let createdDate: String
 
-    func toModel() -> Entity {
+    func toModel() -> Subject {
         let iso = ISO8601DateFormatter()
-        return Entity(
+        let statusMap: [String: SubjectStatus] = [
+            "Active": .active,
+            "Dormant": .pending,
+            "At Risk": .atRisk,
+            "Archived": .archived,
+            "Pending": .pending
+        ]
+        return Subject(
             id: id,
             name: name,
-            type: EntityType(rawValue: type) ?? .person,
-            status: EntityStatus(rawValue: status) ?? .active,
-            healthScore: healthScore,
-            creditLimit: creditLimit,
-            utilisationPercent: utilisationPercent,
-            monthlyBurn: monthlyBurn,
+            type: SubjectType(rawValue: type) ?? .person,
+            status: statusMap[status] ?? .active,
+            creditScore: min(100, max(0, healthScore)),
             assignedPhone: assignedPhone,
             assignedEmail: assignedEmail,
-            clearScore: clearScore,
             lastActivityDate: iso.date(from: lastActivityDate) ?? Date(),
             isFlagged: isFlagged,
             notes: notes,
-            createdDate: iso.date(from: createdDate) ?? Date()
+            createdDate: iso.date(from: createdDate) ?? Date(),
+            dateOfBirth: "",
+            address: "",
+            idNumber: "",
+            applications: []
         )
     }
 }
@@ -128,3 +159,69 @@ nonisolated struct BackendHealthResponse: Codable, Sendable {
     let message: String?
     let version: String?
 }
+
+nonisolated struct DashboardResponse: Codable, Sendable {
+    let totalFirepower: Double?
+    let monthlyBurn: Double?
+    let activeCount: Int?
+    let totalCount: Int?
+    let urgentCount: Int?
+    let unreadComms: Int?
+    let unreadEmails: Int?
+}
+
+nonisolated struct TRPCResponse<T: Decodable & Sendable>: Decodable, Sendable {
+    let result: TRPCResult<T>
+}
+
+nonisolated struct TRPCResult<T: Decodable & Sendable>: Decodable, Sendable {
+    let data: TRPCData<T>
+}
+
+nonisolated struct TRPCData<T: Decodable & Sendable>: Decodable, Sendable {
+    let json: T
+}
+
+nonisolated struct TRPCErrorResponse: Decodable, Sendable {
+    let error: TRPCErrorBody
+}
+
+nonisolated struct TRPCErrorBody: Decodable, Sendable {
+    let message: String?
+    let code: Int?
+    let data: TRPCErrorData?
+}
+
+nonisolated struct TRPCErrorData: Decodable, Sendable {
+    let code: String?
+    let httpStatus: Int?
+    let message: String?
+}
+
+nonisolated struct SuccessResponse: Codable, Sendable {
+    let success: Bool
+}
+
+nonisolated enum APIError: Error, LocalizedError, Sendable {
+    case invalidURL
+    case serverError(Int, String)
+    case notConfigured
+
+    nonisolated var errorDescription: String? {
+        switch self {
+        case .invalidURL: "Unable to connect to server"
+        case .serverError(_, let message): message
+        case .notConfigured: "API not configured"
+        }
+    }
+}
+
+nonisolated struct SuperJSONInput<T: Encodable & Sendable>: Encodable, Sendable {
+    let json: T
+}
+
+nonisolated struct IDInput: Codable, Sendable {
+    let id: String
+}
+
+nonisolated struct EmptyInput: Codable, Sendable {}

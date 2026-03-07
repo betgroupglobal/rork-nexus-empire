@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CommRowView: View {
     let comm: Communication
+    let store: NexusStore
 
     var body: some View {
         HStack(spacing: 12) {
@@ -9,7 +10,6 @@ struct CommRowView: View {
                 Circle()
                     .fill(commTypeColor.opacity(0.12))
                     .frame(width: 40, height: 40)
-
                 Image(systemName: comm.type.icon)
                     .font(.subheadline)
                     .foregroundStyle(commTypeColor)
@@ -21,6 +21,10 @@ struct CommRowView: View {
                         .font(.headline)
                         .fontWeight(comm.isRead ? .regular : .semibold)
                         .lineLimit(1)
+
+                    if let name = comm.subjectName {
+                        subjectBadge(name)
+                    }
 
                     Spacer()
 
@@ -34,7 +38,21 @@ struct CommRowView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
 
-                if let duration = comm.duration {
+                if comm.type == .voicemail, let duration = comm.duration {
+                    HStack(spacing: 4) {
+                        Image(systemName: "waveform")
+                            .font(.caption2)
+                            .foregroundStyle(.purple)
+                        Text(formattedDuration(duration))
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                        if comm.transcription != nil {
+                            Text("Transcription available")
+                                .font(.caption2)
+                                .foregroundStyle(.purple.opacity(0.7))
+                        }
+                    }
+                } else if let duration = comm.duration {
                     Text(formattedDuration(duration))
                         .font(.caption2)
                         .foregroundStyle(.tertiary)
@@ -48,6 +66,23 @@ struct CommRowView: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private func subjectBadge(_ name: String) -> some View {
+        let subject = store.subjects.first { $0.name.localizedStandardContains(name) || name.localizedStandardContains($0.name) }
+        let color: Color = {
+            guard let s = subject else { return .secondary }
+            if s.creditScore >= 80 { return .green }
+            if s.creditScore >= 50 { return .yellow }
+            return .red
+        }()
+        return Text(name)
+            .font(.system(size: 9, weight: .bold))
+            .foregroundStyle(color)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 1)
+            .background(color.opacity(0.12))
+            .clipShape(Capsule())
     }
 
     private var commTypeColor: Color {

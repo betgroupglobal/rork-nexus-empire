@@ -2,9 +2,9 @@ import SwiftUI
 
 struct AlertsView: View {
     let store: NexusStore
+    @Environment(\.isVoidTheme) private var isVoidTheme
     @State private var selectedType: AlertType? = nil
-    @State private var selectedComm: Communication?
-    @State private var selectedEmail: EmailMessage?
+    @State private var selectedSubject: Subject?
     @State private var selectedAlert: NexusAlert?
 
     var body: some View {
@@ -17,7 +17,11 @@ struct AlertsView: View {
             ForEach(filteredAlerts) { alert in
                 Button {
                     store.markAlertRead(alert)
-                    navigateFromAlert(alert)
+                    if let subject = store.findRelatedSubject(for: alert) {
+                        selectedSubject = subject
+                    } else {
+                        selectedAlert = alert
+                    }
                 } label: {
                     AlertRowView(alert: alert)
                 }
@@ -35,7 +39,7 @@ struct AlertsView: View {
             }
         }
         .listStyle(.plain)
-        .navigationTitle("Alerts")
+        .navigationTitle("Alert Brain")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -54,24 +58,11 @@ struct AlertsView: View {
                 ContentUnavailableView("No Alerts", systemImage: "bell.slash", description: Text("All clear — nothing requires your attention"))
             }
         }
-        .sheet(item: $selectedComm) { comm in
-            CommDetailSheet(comm: comm)
-        }
-        .sheet(item: $selectedEmail) { email in
-            EmailDetailSheet(email: email, store: store)
+        .navigationDestination(item: $selectedSubject) { subject in
+            SubjectDetailView(subject: subject, store: store)
         }
         .sheet(item: $selectedAlert) { alert in
             AlertDetailSheet(alert: alert, store: store)
-        }
-    }
-
-    private func navigateFromAlert(_ alert: NexusAlert) {
-        if let comm = store.findRelatedComm(for: alert) {
-            selectedComm = comm
-        } else if let email = store.findRelatedEmail(for: alert) {
-            selectedEmail = email
-        } else {
-            selectedAlert = alert
         }
     }
 
@@ -85,7 +76,7 @@ struct AlertsView: View {
                         .font(.subheadline)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
-                        .background(selectedType == nil ? .blue : Color(.tertiarySystemGroupedBackground))
+                        .background(selectedType == nil ? .blue : (isVoidTheme ? Color.white.opacity(0.08) : Color(.tertiarySystemGroupedBackground)))
                         .foregroundStyle(selectedType == nil ? .white : .primary)
                         .clipShape(Capsule())
                 }
@@ -98,7 +89,7 @@ struct AlertsView: View {
                             .font(.subheadline)
                             .padding(.horizontal, 14)
                             .padding(.vertical, 8)
-                            .background(selectedType == type ? .blue : Color(.tertiarySystemGroupedBackground))
+                            .background(selectedType == type ? .blue : (isVoidTheme ? Color.white.opacity(0.08) : Color(.tertiarySystemGroupedBackground)))
                             .foregroundStyle(selectedType == type ? .white : .primary)
                             .clipShape(Capsule())
                     }
@@ -113,11 +104,9 @@ struct AlertsView: View {
 
     private var filteredAlerts: [NexusAlert] {
         var result = store.alerts
-
         if let type = selectedType {
             result = result.filter { $0.type == type }
         }
-
         return result.sorted { $0.timestamp > $1.timestamp }
     }
 }
@@ -161,9 +150,15 @@ struct AlertDetailSheet: View {
                                     .foregroundStyle(priorityColor)
                                     .clipShape(Capsule())
 
-                                Text(alert.type.rawValue)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                if let name = alert.subjectName {
+                                    Text(name)
+                                        .font(.caption)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 3)
+                                        .background(.blue.opacity(0.1))
+                                        .foregroundStyle(.blue)
+                                        .clipShape(Capsule())
+                                }
                             }
                         }
                     }
@@ -184,9 +179,9 @@ struct AlertDetailSheet: View {
                                 .foregroundStyle(.orange)
 
                             VStack(alignment: .leading, spacing: 6) {
-                                recommendedAction("Review affected accounts immediately")
-                                recommendedAction("Reduce outstanding balances if possible")
-                                recommendedAction("Contact your financial advisor")
+                                recommendedAction("Review the affected subject immediately")
+                                recommendedAction("Follow up with the bank on stalled applications")
+                                recommendedAction("Update documents if verification is pending")
                             }
                         }
                         .padding(14)

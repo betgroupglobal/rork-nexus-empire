@@ -4,7 +4,7 @@ enum CacheService {
     private static let commsKey = "cached_communications"
     private static let emailsKey = "cached_emails"
     private static let alertsKey = "cached_alerts"
-    private static let entitiesKey = "cached_entities"
+    private static let subjectsKey = "cached_subjects"
     private static let lastFetchKey = "cached_last_fetch"
 
     static func saveCommunications(_ comms: [Communication]) {
@@ -31,12 +31,12 @@ enum CacheService {
         load(forKey: alertsKey)
     }
 
-    static func saveEntities(_ entities: [Entity]) {
-        save(entities, forKey: entitiesKey)
+    static func saveSubjects(_ subjects: [Subject]) {
+        save(subjects, forKey: subjectsKey)
     }
 
-    static func loadEntities() -> [Entity]? {
-        load(forKey: entitiesKey)
+    static func loadSubjects() -> [Subject]? {
+        load(forKey: subjectsKey)
     }
 
     static func updateLastFetch() {

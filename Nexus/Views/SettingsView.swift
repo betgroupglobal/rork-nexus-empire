@@ -4,7 +4,7 @@ struct SettingsView: View {
     let store: NexusStore
     @Bindable var authVM: AuthViewModel
     @State private var showLogoutConfirm: Bool = false
-    @AppStorage("appearance") private var appearance: String = "system"
+    @AppStorage("appearance") private var appearance: String = "void"
 
     var body: some View {
         Form {
@@ -20,7 +20,6 @@ struct SettingsView: View {
                                 )
                             )
                             .frame(width: 52, height: 52)
-
                         Image(systemName: "shield.checkered")
                             .font(.title3)
                             .foregroundStyle(.white)
@@ -87,14 +86,7 @@ struct SettingsView: View {
                     case .connected(_):
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundStyle(.green)
-                    case .unreachable(_):
-                        Button {
-                            Task { await store.checkBackendHealth() }
-                        } label: {
-                            Image(systemName: "arrow.clockwise")
-                                .font(.subheadline)
-                        }
-                    case .unknown:
+                    case .unreachable(_), .unknown:
                         Button {
                             Task { await store.checkBackendHealth() }
                         } label: {
@@ -131,6 +123,16 @@ struct SettingsView: View {
                     Text("System").tag("system")
                     Text("Light").tag("light")
                     Text("Dark").tag("dark")
+                    Text("Void").tag("void")
+                }
+
+                if appearance == "void" {
+                    HStack(spacing: 8) {
+                        Circle().fill(.red).frame(width: 10, height: 10)
+                        Text("Void: Pure black + red critical bleed")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
 
@@ -141,7 +143,8 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                LabeledContent("Entities", value: "\(store.entities.count)")
+                LabeledContent("Subjects", value: "\(store.subjects.count)")
+                LabeledContent("Applications", value: "\(store.currentApplicationsTotal)")
                 LabeledContent("Messages", value: "\(store.communications.count)")
                 LabeledContent("Emails", value: "\(store.emails.count)")
                 LabeledContent("Alerts", value: "\(store.alerts.count)")
@@ -362,7 +365,6 @@ struct CrazyTelSettingsView: View {
                 if store.ctConnectionStatus == .connected {
                     accountSection
                     didInventorySection
-                    routingSection
                 }
             }
         }
@@ -446,9 +448,6 @@ struct CrazyTelSettingsView: View {
                         Text("No DIDs found")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Text("Purchase DIDs from the CrazyTel portal")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
                     }
                     .padding(.vertical, 8)
                     Spacer()
@@ -498,18 +497,6 @@ struct CrazyTelSettingsView: View {
                         .font(.caption)
                 }
             }
-        }
-    }
-
-    private var routingSection: some View {
-        Section {
-            LabeledContent("SMS Forwarding", value: "All DIDs → Nexus")
-            LabeledContent("Call Forwarding", value: "All DIDs → Nexus")
-            LabeledContent("Voicemail", value: "Transcribe + Store")
-        } header: {
-            Text("Routing")
-        } footer: {
-            Text("All inbound SMS, calls, and voicemails are routed through the CrazyTel API into your unified inbox.")
         }
     }
 
@@ -606,9 +593,6 @@ struct EmailIntegrationView: View {
                             Text("No accounts connected")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                            Text("Sign in with Gmail, Outlook, Yahoo, or IMAP")
-                                .font(.caption)
-                                .foregroundStyle(.tertiary)
                         }
                         .padding(.vertical, 12)
                         Spacer()
@@ -681,12 +665,10 @@ struct EmailAccountRow: View {
                 Text(account.displayName)
                     .font(.subheadline.weight(.medium))
                     .lineLimit(1)
-                HStack(spacing: 6) {
-                    Text(account.emailAddress)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
+                Text(account.emailAddress)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
 
             Spacer()
@@ -702,14 +684,10 @@ struct EmailAccountRow: View {
                     .clipShape(Capsule())
             }
 
-            statusIndicator
+            Circle()
+                .fill(statusColor)
+                .frame(width: 8, height: 8)
         }
-    }
-
-    private var statusIndicator: some View {
-        Circle()
-            .fill(statusColor)
-            .frame(width: 8, height: 8)
     }
 
     private var statusColor: Color {
@@ -830,13 +808,10 @@ struct EmailAccountDetailSheet: View {
                         } label: {
                             HStack {
                                 if isLoggingIn {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                    Text("Signing in...")
-                                        .font(.subheadline)
+                                    ProgressView().controlSize(.small)
+                                    Text("Signing in...").font(.subheadline)
                                 } else {
-                                    Label("Sign In", systemImage: "arrow.right.circle.fill")
-                                        .font(.subheadline)
+                                    Label("Sign In", systemImage: "arrow.right.circle.fill").font(.subheadline)
                                 }
                             }
                         }
@@ -873,8 +848,7 @@ struct EmailAccountDetailSheet: View {
                     Button(role: .destructive) {
                         showRemoveConfirm = true
                     } label: {
-                        Label("Remove Account", systemImage: "trash")
-                            .font(.subheadline)
+                        Label("Remove Account", systemImage: "trash").font(.subheadline)
                     }
                 }
             }
@@ -951,8 +925,7 @@ struct AddEmailAccountSheet: View {
                             signIn()
                         } label: {
                             if isLoggingIn {
-                                ProgressView()
-                                    .controlSize(.small)
+                                ProgressView().controlSize(.small)
                             } else {
                                 Text("Sign In")
                             }

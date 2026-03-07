@@ -2,6 +2,7 @@ import SwiftUI
 
 struct EmailInboxView: View {
     let store: NexusStore
+    @Environment(\.isVoidTheme) private var isVoidTheme
     @State private var selectedCategory: EmailCategory? = nil
     @State private var selectedAccountId: UUID? = nil
     @State private var searchText: String = ""
@@ -26,7 +27,7 @@ struct EmailInboxView: View {
                     store.markEmailRead(email)
                     selectedEmail = email
                 } label: {
-                    EmailRowView(email: email, accountName: accountName(for: email))
+                    EmailRowView(email: email, store: store, accountName: accountName(for: email))
                 }
                 .tint(.primary)
                 .swipeActions(edge: .leading) {
@@ -55,7 +56,7 @@ struct EmailInboxView: View {
         }
         .listStyle(.plain)
         .searchable(text: $searchText, prompt: "Search emails...")
-        .navigationTitle("Email Inbox")
+        .navigationTitle("Email Router")
         .overlay {
             if filteredEmails.isEmpty {
                 ContentUnavailableView("No Emails", systemImage: "envelope.open", description: Text("No emails match your filters"))
@@ -108,7 +109,7 @@ struct EmailInboxView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
-            .background(selectedAccountId == accountId ? color : Color(.tertiarySystemGroupedBackground))
+            .background(selectedAccountId == accountId ? color : (isVoidTheme ? Color.white.opacity(0.08) : Color(.tertiarySystemGroupedBackground)))
             .foregroundStyle(selectedAccountId == accountId ? .white : .primary)
             .clipShape(Capsule())
         }
@@ -139,7 +140,7 @@ struct EmailInboxView: View {
                 .font(.subheadline)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .background(selectedCategory == category ? .teal : Color(.tertiarySystemGroupedBackground))
+                .background(selectedCategory == category ? .teal : (isVoidTheme ? Color.white.opacity(0.08) : Color(.tertiarySystemGroupedBackground)))
                 .foregroundStyle(selectedCategory == category ? .white : .primary)
                 .clipShape(Capsule())
         }
@@ -161,7 +162,8 @@ struct EmailInboxView: View {
             result = result.filter {
                 $0.subject.localizedStandardContains(searchText) ||
                 $0.sender.localizedStandardContains(searchText) ||
-                $0.snippet.localizedStandardContains(searchText)
+                $0.snippet.localizedStandardContains(searchText) ||
+                ($0.subjectName?.localizedStandardContains(searchText) ?? false)
             }
         }
 
@@ -207,6 +209,16 @@ struct EmailDetailSheet: View {
                                 .foregroundStyle(.teal)
                                 .clipShape(Capsule())
 
+                            if let name = email.subjectName {
+                                Text(name)
+                                    .font(.caption)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(.blue.opacity(0.1))
+                                    .foregroundStyle(.blue)
+                                    .clipShape(Capsule())
+                            }
+
                             if email.containsDollarAmount {
                                 Image(systemName: "dollarsign.circle.fill")
                                     .foregroundStyle(.green)
@@ -223,15 +235,11 @@ struct EmailDetailSheet: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
 
-                            Label(email.alias, systemImage: "at")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        if let accountName {
-                            Label(accountName, systemImage: "person.crop.circle")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            if let accountName {
+                                Label(accountName, systemImage: "person.crop.circle")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
 

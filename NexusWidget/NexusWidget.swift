@@ -3,10 +3,12 @@ import SwiftUI
 
 nonisolated struct NexusEntry: TimelineEntry {
     let date: Date
-    let totalFirepower: Double
-    let monthlyBurn: Double
+    let currentApplications: Int
     let urgentCount: Int
-    let activeEntities: Int
+    let totalSubjects: Int
+    let longestActiveSubject: String
+    let longestActiveBank: String
+    let longestActiveDays: Int
     let urgentActions: [(String, String)]
 }
 
@@ -14,14 +16,16 @@ nonisolated struct NexusProvider: TimelineProvider {
     func placeholder(in context: Context) -> NexusEntry {
         NexusEntry(
             date: .now,
-            totalFirepower: 487500,
-            monthlyBurn: 312,
-            urgentCount: 3,
-            activeEntities: 7,
+            currentApplications: 11,
+            urgentCount: 4,
+            totalSubjects: 8,
+            longestActiveSubject: "Sarah Chen",
+            longestActiveBank: "ANZ",
+            longestActiveDays: 52,
             urgentActions: [
-                ("ClearScore Dropping", "Blake Thompson"),
-                ("High Utilisation", "Blake Thompson"),
-                ("Dormant Entity", "Sarah Chen")
+                ("Application Stalled — 52 Days", "Sarah Chen"),
+                ("Score Drop — 32", "Blake Thompson"),
+                ("Verification Required", "Pinnacle Trust")
             ]
         )
     }
@@ -32,10 +36,12 @@ nonisolated struct NexusProvider: TimelineProvider {
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<NexusEntry>) -> Void) {
         let shared = UserDefaults(suiteName: "group.app.rork.nexus.shared")
-        let firepower = shared?.double(forKey: "totalFirepower") ?? 487500
-        let burn = shared?.double(forKey: "monthlyBurn") ?? 312
-        let urgent = shared?.integer(forKey: "urgentCount") ?? 3
-        let active = shared?.integer(forKey: "activeEntities") ?? 7
+        let apps = shared?.integer(forKey: "currentApplicationsTotal") ?? 11
+        let urgent = shared?.integer(forKey: "urgentCount") ?? 4
+        let subjects = shared?.integer(forKey: "totalSubjects") ?? 8
+        let longestSubject = shared?.string(forKey: "longestActiveSubject") ?? "Sarah Chen"
+        let longestBank = shared?.string(forKey: "longestActiveBank") ?? "ANZ"
+        let longestDays = shared?.integer(forKey: "longestActiveDays") ?? 52
 
         var urgentActions: [(String, String)] = []
         if let data = shared?.data(forKey: "urgentActions"),
@@ -43,18 +49,20 @@ nonisolated struct NexusProvider: TimelineProvider {
             urgentActions = decoded.map { ($0[0], $0.count > 1 ? $0[1] : "") }
         } else {
             urgentActions = [
-                ("ClearScore Dropping", "Blake Thompson"),
-                ("High Utilisation", "Blake Thompson"),
-                ("Dormant Entity", "Sarah Chen")
+                ("Application Stalled — 52 Days", "Sarah Chen"),
+                ("Score Drop — 32", "Blake Thompson"),
+                ("Verification Required", "Pinnacle Trust")
             ]
         }
 
         let entry = NexusEntry(
             date: .now,
-            totalFirepower: firepower,
-            monthlyBurn: burn,
+            currentApplications: apps,
             urgentCount: urgent,
-            activeEntities: active,
+            totalSubjects: subjects,
+            longestActiveSubject: longestSubject,
+            longestActiveBank: longestBank,
+            longestActiveDays: longestDays,
             urgentActions: urgentActions
         )
 
@@ -69,7 +77,7 @@ struct NexusWidgetSmallView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Image(systemName: "bolt.shield.fill")
+                Image(systemName: "doc.text.magnifyingglass")
                     .font(.caption)
                     .foregroundStyle(.blue)
                 Spacer()
@@ -86,18 +94,18 @@ struct NexusWidgetSmallView: View {
 
             Spacer()
 
-            Text("FIREPOWER")
+            Text("APPLICATIONS")
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(.secondary)
                 .tracking(0.8)
 
-            Text(formatCurrency(entry.totalFirepower))
-                .font(.system(size: 22, weight: .bold))
+            Text("\(entry.currentApplications)")
+                .font(.system(size: 28, weight: .bold, design: .rounded))
                 .foregroundStyle(.primary)
                 .minimumScaleFactor(0.7)
 
             HStack(spacing: 4) {
-                Text("\(entry.activeEntities) active")
+                Text("\(entry.totalSubjects) subjects")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -115,7 +123,7 @@ struct NexusWidgetMediumView: View {
         HStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Image(systemName: "bolt.shield.fill")
+                    Image(systemName: "shield.checkered")
                         .font(.caption)
                         .foregroundStyle(.blue)
                     Text("NEXUS")
@@ -126,20 +134,27 @@ struct NexusWidgetMediumView: View {
 
                 Spacer()
 
-                Text("FIREPOWER")
+                Text("APPLICATIONS")
                     .font(.system(size: 9, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .tracking(0.8)
 
-                Text(formatCurrency(entry.totalFirepower))
-                    .font(.system(size: 24, weight: .bold))
+                Text("\(entry.currentApplications)")
+                    .font(.system(size: 28, weight: .bold, design: .rounded))
                     .minimumScaleFactor(0.7)
 
                 HStack(spacing: 10) {
-                    Label(formatCurrency(entry.monthlyBurn), systemImage: "flame")
-                        .font(.caption2)
+                    if entry.longestActiveDays > 0 {
+                        HStack(spacing: 2) {
+                            Image(systemName: "clock")
+                                .font(.system(size: 8))
+                            Text("\(entry.longestActiveDays)d")
+                                .font(.caption2)
+                        }
                         .foregroundStyle(.orange)
-                    Label("\(entry.activeEntities)", systemImage: "shield.checkered")
+                    }
+
+                    Label("\(entry.totalSubjects)", systemImage: "person.3")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -206,7 +221,7 @@ struct NexusWidget: Widget {
             NexusWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("Nexus Command")
-        .description("Empire pulse — firepower, burn rate, and urgent actions at a glance.")
+        .description("Current applications, urgent actions, and longest active subject at a glance.")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
@@ -225,13 +240,4 @@ struct NexusWidgetEntryView: View {
             NexusWidgetSmallView(entry: entry)
         }
     }
-}
-
-private func formatCurrency(_ value: Double) -> String {
-    if value >= 1_000_000 {
-        return "$\(String(format: "%.1fM", value / 1_000_000))"
-    } else if value >= 1_000 {
-        return "$\(String(format: "%.0fK", value / 1_000))"
-    }
-    return "$\(String(format: "%.0f", value))"
 }

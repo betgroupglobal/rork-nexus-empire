@@ -1,97 +1,101 @@
-# Nexus — Empire Command Center for iOS
+# Nexus — War Room Command Center for iOS
 
 
 ## Features
 
-### Dashboard (Command Center)
-- **Total Firepower** display showing combined credit across all entities with animated counter
-- **Monthly Burn Rate** showing infrastructure costs with trend indicator
-- **Urgent Actions** count with color-coded badges (red for critical, yellow for attention, green for clear)
-- **Quick Stats Row** — entities count, active comms, unread messages, health overview
-- Pull-to-refresh with haptic feedback
+### Dashboard (War Room Command Center)
+- [x] **Current Applications Total** — massive animated counter showing every live credit application across all subjects
+- [x] **Longest Active** tile — subject + application running longest (name + exact days active + bank), pulses when >45 days
+- [x] **Email Tile** — unified unread/pending email count, tap routes to Email Router
+- [x] **SMS Tile** — unified unread SMS count, tap routes to Comms Citadel
+- [x] **Urgent Actions** — live count with color-coded badges (red critical, yellow attention, green clear)
+- [x] **Quick Stats Row** — Total Subjects, Active Comms (last 24h), Unread Messages
+- [x] Pull-to-refresh with haptic feedback
 
-### Entity Radar
-- Each entity (Person / Ltd / Trust) has a **Health Score** (0–100) with animated circular gauge
-- Color-coded status: Green (80–100), Yellow (50–79), Red (0–49)
-- Entity cards showing: name, type, credit limit, utilisation %, last activity date, assigned phone/email
-- **Smart Search** with instant filtering by name, type, or status
-- Filter chips: All / Active / Dormant / At Risk
-- Tap an entity → full detail view with activity timeline, linked comms, and credit history
-- Swipe actions: Archive, Flag, Quick Edit
+### Subject Database (Replaces Entity Radar)
+- [x] Every subject rendered as a card with **Credit Score (0–100)** in animated circular gauge
+- [x] Color-coded accents: Green (80–100), Yellow (50–79), Red (0–49)
+- [x] Subject cards: Name | Credit Score + color ring | Banks Applied | Progress % (bar + number) | Last Activity | Assigned Phone/Email
+- [x] **Smart Search** — instant filtering by name, bank, or progress %
+- [x] Filter chips: All | Active | Pending | At Risk | High Progress
+- [x] Context menu actions: Archive, Flag
+- [x] Tap any subject → clean two-section detail view:
+  - **Personal Information** (key-value grid: Name | DOB | Address | ID | Contacts)
+  - **Credit Application Progress** (tabular grid): Bank | Product | Status | Progress % | Submitted | Last Update | Next Action | Documents
 
 ### Comms Citadel (Unified Inbox)
-- Unified view of all SMS, calls, voicemails across all entity numbers
-- Each message auto-tagged with entity name and badge color
-- Tabs: All / SMS / Calls / Voicemails
-- Voicemail entries show transcription text + audio duration
-- Unread indicator dots and timestamp formatting
-- Tap to expand full message thread per entity
+- [x] All SMS, calls, voicemails across every subject number
+- [x] Messages auto-tagged with subject name + credit score color badge
+- [x] Tabs: All | SMS | Calls | Voicemails (live counters)
+- [x] Voicemail cards: transcription + duration + playhead
+- [x] Tap expands full thread scoped to that subject
 
 ### Email Router (Empire Inbox)
-- Unified email view with entity auto-tagging
-- Smart categories: Statements / Approvals / IRD Notices / General
-- Preview cards showing sender, subject, entity tag, and snippet
-- Auto-archive indicator for 90+ day old messages
-- Flag system for messages containing dollar amounts or keywords
+- [x] Unified inbox with automatic subject tagging
+- [x] Smart categories: Statements | Approvals | Bank Notices | IRD | General
+- [x] Preview cards: sender | subject tag | snippet + $ amount highlight if present
+- [x] Flag/archive swipe actions
 
 ### Alert Brain (Notifications Center)
-- Timeline of all alerts: utilisation warnings, ClearScore drops, dormant entities, new comms
-- Priority levels with distinct icons and colors
-- Filter by alert type
-- Each alert links directly to the relevant entity or message
+- [x] Timeline of all alerts tied to specific subjects (stalled apps, score drops, verification blocks, new comms, utilisation spikes)
+- [x] Priority icons + colors (red critical, orange warning, blue info)
+- [x] Filter by type
+- [x] Every alert one-taps directly into the subject's detail view
 
 ### Settings & Configuration
-- Entity management (add/edit/archive)
-- Alert rules configuration
-- Theme preference (light/dark/system)
-- Data export option
+- [x] Subject management (add/edit/archive)
+- [x] CrazyTel integration
+- [x] Email account management
+- [x] Theme: Light / Dark / **Void** (#000000 base + red bleed on critical) — Void is default
+- [x] Backend status indicator + retry
 
 ### Home Screen Widget
-- **Small Widget** — Total Firepower number + urgent action count
-- **Medium Widget** — Firepower, burn rate, top 3 urgent actions with entity names
-- Tapping the widget opens the relevant section in the app
+- [x] **Small**: Current Applications Total + Urgent Actions count
+- [x] **Medium**: Current Applications + Longest Active subject name + top 3 urgent items
 
 ---
 
 ## Design
 
-- **Clean professional** aesthetic — adaptive light/dark mode with system blue tint
-- Dashboard uses **card-based layout** with subtle shadows and rounded corners on grouped background
-- Entity health scores shown as **animated ring gauges** (green/yellow/red gradient)
-- Firepower displayed in large **bold SF Pro** with animated counting effect
-- Comms inbox uses a **native List** style similar to Apple Messages
-- Material backgrounds (`.ultraThinMaterial`) for floating summary bars
+- **Void theme default** — pure black (#000) base with red accent on critical states, maximum contrast for green/yellow/red score indicators
+- Dashboard uses **card-based layout** with animated counter hero section
+- Subject credit scores shown as **animated ring gauges** (green/yellow/red)
+- Applications counter displayed in large **bold SF Pro Rounded** with animated counting effect
+- Comms inbox uses **native List** style with subject name + score color badges on each message
 - Staggered fade-in animations when views load
-- Spring animations on card interactions
-- Haptic feedback on key actions (archiving, flagging, refreshing)
-- Tab bar with 5 tabs: Dashboard, Entities, Comms, Inbox, Alerts
-- SF Symbols throughout — `shield.checkered`, `antenna.radiowaves.left.and.right`, `envelope.badge`, `bell.badge`, `chart.bar.xaxis`
+- Spring animations on gauge fills and card interactions
+- Haptic feedback on key actions (refreshing, flagging)
+- Tab bar with 5 tabs: War Room, Subjects, Comms, Email, Alerts
+- SF Symbols throughout
 
 ---
 
 ## Screens
 
-1. **Dashboard** — Hero card with total firepower, burn rate, and urgent actions list. Scrollable with quick-glance entity health summary
-2. **Entities** — Searchable list of all entities with health score rings, filter chips, and swipe actions. Tap → Entity Detail
-3. **Entity Detail** — Full profile: health gauge, credit info, utilisation chart, activity timeline, linked numbers/emails
-4. **Comms** — Unified message inbox with tabs (All/SMS/Calls/Voicemails), entity tags on each item
-5. **Email Inbox** — Categorised email list with smart tags, previews, and flag indicators
-6. **Alerts** — Chronological alert timeline with type filters and direct entity links
-7. **Settings** — Entity management, alert rules, preferences
-8. **Add/Edit Entity** — Sheet with fields for name, type, credit limit, assigned numbers, emails
+1. **War Room** — Hero counter for current applications, longest active tile, urgent actions, quick stats
+2. **Subjects** — Searchable card list with credit score gauges, filter chips, context menus. Tap → Subject Detail
+3. **Subject Detail** — Two-section layout: Personal Information grid + Credit Application Progress table with status badges and progress bars
+4. **Comms Citadel** — Tabbed message inbox (All/SMS/Calls/Voicemails) with subject tags and live counters
+5. **Email Router** — Categorised email list with smart tags, subject badges, $ amount highlights
+6. **Alert Brain** — Chronological alert timeline with type filters and direct subject links
+7. **Settings** — Integrations, theme, backend status, data overview
 
 ---
 
-## App Icon
+## Models
 
-- Dark navy blue background with a subtle radial gradient toward the center
-- A minimal white shield icon with a small network/nexus node pattern inside
-- Clean, professional, and authoritative — like a premium financial app
+- **Subject** (replaces Entity): id, name, type (Person/Ltd/Trust), status (Active/Pending/At Risk/Archived), creditScore (0-100), assignedPhone, assignedEmail, lastActivityDate, dateOfBirth, address, idNumber, applications[]
+- **CreditApplication**: id, bank, product, status (Submitted/In Review/Approved/Declined/Docs Needed/Stalled), progressPercent, submittedDate, lastUpdateDate, nextAction, documents
+- **Communication**: id, type, sender, content, timestamp, isRead, phoneNumber, duration, transcription, subjectId, subjectName
+- **EmailMessage**: id, sender, senderAddress, subject, snippet, category (Statement/Approval/Bank Notice/IRD/General), timestamp, isRead, isFlagged, containsDollarAmount, subjectId, subjectName
+- **NexusAlert**: id, type (Stalled App/Score Drop/Verification/New Comm/Utilisation), priority (Critical/Warning/Info), title, message, timestamp, isRead, subjectId, subjectName
 
 ---
 
 ## Data
 
-- All data is **realistic sample data** pre-loaded on first launch (8 entities across Person/Ltd/Trust types)
-- Stored locally using on-device persistence
-- Sample comms, emails, and alerts pre-populated to showcase the full experience
+- All data is **realistic sample data** pre-loaded on first launch (8 subjects across Person/Ltd/Trust types)
+- Each subject has 1-3 credit applications with varied statuses
+- 11 active applications total across all subjects
+- Stored locally using on-device persistence with backend API fallback
+- Sample comms, emails, and alerts pre-populated with subject linkage
