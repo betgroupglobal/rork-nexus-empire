@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		XXE6CA5ECA2BA4BB6EBBE8XX /* NexusWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = XX44C5209005E1C0F1D01BXX /* NexusWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		XXE6CA5ECA2BA4BB6EBBE8XX /* NexusWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = XX44C5209005E1C0F1D01BXX /* NexusWidget.appex */; platformFilter = ios; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -509,6 +509,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = app.rork.81fgfl1r9qqopr5i4lq4i;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTS_MACCATALYST = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -542,6 +544,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = app.rork.81fgfl1r9qqopr5i4lq4i;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTS_MACCATALYST = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
