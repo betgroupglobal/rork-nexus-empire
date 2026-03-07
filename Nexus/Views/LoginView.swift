@@ -38,6 +38,11 @@ struct LoginView: View {
                     toggleModeButton
 
                     Spacer()
+                        .frame(height: 20)
+
+                    devLoginButton
+
+                    Spacer()
                         .frame(height: geo.size.height * 0.1)
                 }
                 .padding(.horizontal, 28)
@@ -208,6 +213,30 @@ struct LoginView: View {
                     .fontWeight(.semibold)
             }
             .font(.subheadline)
+        }
+    }
+
+    private var devLoginButton: some View {
+        Button {
+            email = "dev@nexus.test"
+            password = "devdev123"
+            name = "Dev User"
+            if isRegistering {
+                confirmPassword = "devdev123"
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "hammer.fill")
+                    .font(.caption2)
+                Text("Fill Dev Credentials")
+                    .font(.caption)
+                    .fontWeight(.medium)
+            }
+            .foregroundStyle(.white.opacity(0.3))
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Color.white.opacity(0.05))
+            .clipShape(.rect(cornerRadius: 8))
         }
     }
 
