@@ -83,3 +83,48 @@ nonisolated struct AlertDTO: Codable, Sendable {
         )
     }
 }
+
+nonisolated struct EntityDTO: Codable, Sendable {
+    let id: String
+    let name: String
+    let type: String
+    let status: String
+    let healthScore: Int
+    let creditLimit: Double
+    let utilisationPercent: Double
+    let monthlyBurn: Double
+    let assignedPhone: String
+    let assignedEmail: String
+    let clearScore: Int
+    let lastActivityDate: String
+    let isFlagged: Bool
+    let notes: String
+    let createdDate: String
+
+    func toModel() -> Entity {
+        let iso = ISO8601DateFormatter()
+        return Entity(
+            id: id,
+            name: name,
+            type: EntityType(rawValue: type) ?? .person,
+            status: EntityStatus(rawValue: status) ?? .active,
+            healthScore: healthScore,
+            creditLimit: creditLimit,
+            utilisationPercent: utilisationPercent,
+            monthlyBurn: monthlyBurn,
+            assignedPhone: assignedPhone,
+            assignedEmail: assignedEmail,
+            clearScore: clearScore,
+            lastActivityDate: iso.date(from: lastActivityDate) ?? Date(),
+            isFlagged: isFlagged,
+            notes: notes,
+            createdDate: iso.date(from: createdDate) ?? Date()
+        )
+    }
+}
+
+nonisolated struct BackendHealthResponse: Codable, Sendable {
+    let status: String
+    let message: String?
+    let version: String?
+}

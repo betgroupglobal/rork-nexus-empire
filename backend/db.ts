@@ -86,7 +86,21 @@ const e6Id = "a1b2c3d4-e5f6-7890-abcd-ef1234567806";
 const e7Id = "a1b2c3d4-e5f6-7890-abcd-ef1234567807";
 const e8Id = "a1b2c3d4-e5f6-7890-abcd-ef1234567808";
 
-export const db = {
+interface StoredUser {
+  id: string;
+  email: string;
+  passwordHash: string;
+  name: string;
+  createdAt: string;
+}
+
+export const db: {
+  entities: Entity[];
+  communications: Communication[];
+  emails: Email[];
+  alerts: NexusAlert[];
+  users: StoredUser[];
+} = {
   entities: [
     { id: e1Id, name: "Apex Holdings Pty Ltd", type: "Ltd" as const, status: "Active" as const, healthScore: 92, creditLimit: 75000, utilisationPercent: 12, monthlyBurn: 45, assignedPhone: "+61 4 5555 0101", assignedEmail: "apex@addy.io", clearScore: 845, lastActivityDate: h(3), isFlagged: false, notes: "Primary vehicle. CBA business account.", createdDate: m(14) },
     { id: e2Id, name: "Jordan Mitchell", type: "Person" as const, status: "Active" as const, healthScore: 87, creditLimit: 45000, utilisationPercent: 8, monthlyBurn: 29, assignedPhone: "+61 4 5555 0202", assignedEmail: "j.mitchell@addy.io", clearScore: 812, lastActivityDate: d(1), isFlagged: false, notes: "Clean profile. Westpac personal.", createdDate: m(11) },
@@ -121,6 +135,8 @@ export const db = {
     { id: "e0000001-0000-0000-0000-000000000007", entityId: e8Id, entityName: "Summit Capital Trust", sender: "CBA", senderAddress: "noreply@cba.com.au", subject: "Important: Account Verification Required", snippet: "We need to verify some details on your Summit Capital Trust account. Please log in to NetBank...", category: "General" as const, timestamp: d(4), isRead: false, isFlagged: true, containsDollarAmount: false, alias: "summit@addy.io" },
     { id: "e0000001-0000-0000-0000-000000000008", entityId: e5Id, entityName: "Sarah Chen", sender: "CreditSavvy", senderAddress: "hello@creditsavvy.com.au", subject: "Your Credit Score Has Changed", snippet: "Hi Sarah, your credit score has changed. Your new score is 734. Log in to see what's changed and get tips...", category: "General" as const, timestamp: d(5), isRead: true, isFlagged: false, containsDollarAmount: false, alias: "s.chen@addy.io" },
   ] as Email[],
+
+  users: [] as StoredUser[],
 
   alerts: [
     { id: "al000001-0000-0000-0000-000000000001", entityId: e7Id, entityName: "Blake Thompson", type: "ClearScore" as const, priority: "Critical" as const, title: "ClearScore Dropping", message: "ClearScore dropped to 621 (-24 in 30 days). Utilisation at 67%. Immediate action required.", timestamp: h(2), isRead: false },

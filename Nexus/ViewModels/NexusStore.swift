@@ -1,14 +1,30 @@
 import Foundation
 import SwiftUI
 
+nonisolated enum DataMode: String, Sendable {
+    case live
+    case demo
+}
+
+nonisolated enum BackendStatus: Sendable {
+    case unknown
+    case checking
+    case connected(String?)
+    case unreachable(String)
+}
+
 @Observable
 @MainActor
 class NexusStore {
     var communications: [Communication] = []
     var emails: [EmailMessage] = []
     var alerts: [NexusAlert] = []
+    var entities: [Entity] = []
+    var dashboardData: DashboardResponse?
     var isLoading: Bool = false
     var lastError: String?
+    var dataMode: DataMode = .demo
+    var backendStatus: BackendStatus = .unknown
 
     var ctBalance: Double?
     var ctDIDs: [CTDIDNumber] = []
@@ -38,6 +54,11 @@ class NexusStore {
     private let ctService = CrazyTelService.shared
 
     var totalFirepower: Double {
+        if let d = dashboardData { return d.totalFirepower }
+        let active = entities.filter { $0.status != .archived }
+        if !active.isEmpty {
+            return active.reduce(0) { $0 + $1.creditLimit * (1 - $1.utilisationPercent / 100) }
+        }
         let emailCount = Double(emails.count) * 5_000
         let commCount = Double(communications.count) * 2_500
         let balance = ctBalance ?? 0
@@ -45,6 +66,11 @@ class NexusStore {
     }
 
     var monthlyBurn: Double {
+        if let d = dashboardData { return d.monthlyBurn }
+        let active = entities.filter { $0.status != .archived }
+        if !active.isEmpty {
+            return active.reduce(0) { $0 + $1.monthlyBurn }
+        }
         let didCost = Double(ctDIDs.count) * 12.0
         let emailCost = Double(emailAccounts.count) * 5.0
         return didCost + emailCost + 285
@@ -55,6 +81,11 @@ class NexusStore {
     }
 
     var creditHealth: Double {
+        if !entities.isEmpty {
+            let scores = entities.filter { $0.status != .archived }.map { Double($0.healthScore) }
+            guard !scores.isEmpty else { return 50 }
+            return scores.reduce(0, +) / Double(scores.count)
+        }
         let unreadAlerts = alerts.filter { !$0.isRead && ($0.type == .utilisationWarning || $0.type == .clearScoreDrop) }.count
         return max(0, min(100, 100 - Double(unreadAlerts) * 20))
     }
@@ -82,11 +113,13 @@ class NexusStore {
     }
 
     var unreadCommsCount: Int {
-        communications.filter { !$0.isRead }.count
+        if let d = dashboardData { return d.unreadComms }
+        return communications.filter { !$0.isRead }.count
     }
 
     var unreadEmailCount: Int {
-        emails.filter { !$0.isRead }.count
+        if let d = dashboardData { return d.unreadEmails }
+        return emails.filter { !$0.isRead }.count
     }
 
     var emailConnected: Bool {
@@ -139,12 +172,16 @@ class NexusStore {
         if let cachedAlerts = CacheService.loadAlerts(), !cachedAlerts.isEmpty {
             alerts = cachedAlerts
         }
+        if let cachedEntities = CacheService.loadEntities(), !cachedEntities.isEmpty {
+            entities = cachedEntities
+        }
     }
 
     private func persistToCache() {
         CacheService.saveCommunications(communications)
         CacheService.saveEmails(emails)
         CacheService.saveAlerts(alerts)
+        CacheService.saveEntities(entities)
         CacheService.updateLastFetch()
         updateWidgetData()
     }
@@ -154,7 +191,7 @@ class NexusStore {
         shared?.set(totalFirepower, forKey: "totalFirepower")
         shared?.set(monthlyBurn, forKey: "monthlyBurn")
         shared?.set(urgentActions.count, forKey: "urgentCount")
-        shared?.set(emailAccounts.count + ctDIDs.count, forKey: "activeEntities")
+        shared?.set(entities.filter { $0.status == .active }.count, forKey: "activeEntities")
 
         let urgentData = urgentActions.prefix(3).map { [$0.title, $0.message] }
         if let data = try? JSONEncoder().encode(urgentData) {
@@ -162,8 +199,20 @@ class NexusStore {
         }
     }
 
+    func checkBackendHealth() async {
+        backendStatus = .checking
+        do {
+            let health = try await api.checkHealth()
+            backendStatus = .connected(health.version)
+        } catch {
+            backendStatus = .unreachable(error.localizedDescription)
+        }
+    }
+
     func loadData() async {
         guard api.isConfigured else {
+            dataMode = .demo
+            backendStatus = .unreachable("API not configured")
             if communications.isEmpty {
                 loadSampleData()
                 persistToCache()
@@ -176,15 +225,23 @@ class NexusStore {
             async let commsTask = api.fetchCommunications()
             async let emailsTask = api.fetchEmails()
             async let alertsTask = api.fetchAlerts()
+            async let entitiesTask = api.fetchEntities()
+            async let dashboardTask = api.fetchDashboard()
 
-            let (fetchedComms, fetchedEmails, fetchedAlerts) = try await (commsTask, emailsTask, alertsTask)
+            let (fetchedComms, fetchedEmails, fetchedAlerts, fetchedEntities, fetchedDashboard) = try await (commsTask, emailsTask, alertsTask, entitiesTask, dashboardTask)
 
             communications = fetchedComms
             emails = fetchedEmails
             alerts = fetchedAlerts
+            entities = fetchedEntities
+            dashboardData = fetchedDashboard
+            dataMode = .live
+            backendStatus = .connected(nil)
             persistToCache()
         } catch {
             lastError = error.localizedDescription
+            dataMode = .demo
+            backendStatus = .unreachable(error.localizedDescription)
             if communications.isEmpty {
                 loadSampleData()
                 persistToCache()
@@ -201,6 +258,7 @@ class NexusStore {
         guard let index = communications.firstIndex(where: { $0.id == comm.id }) else { return }
         communications[index].isRead = true
         persistToCache()
+        guard dataMode == .live else { return }
         Task {
             do {
                 _ = try await api.markCommRead(id: comm.id.uuidString.lowercased())
@@ -214,6 +272,7 @@ class NexusStore {
         guard let index = emails.firstIndex(where: { $0.id == email.id }) else { return }
         emails[index].isRead = true
         persistToCache()
+        guard dataMode == .live else { return }
         Task {
             do {
                 _ = try await api.markEmailRead(id: email.id.uuidString.lowercased())
@@ -227,6 +286,7 @@ class NexusStore {
         guard let index = emails.firstIndex(where: { $0.id == email.id }) else { return }
         emails[index].isFlagged.toggle()
         persistToCache()
+        guard dataMode == .live else { return }
         Task {
             do {
                 _ = try await api.toggleEmailFlag(id: email.id.uuidString.lowercased())
@@ -250,6 +310,7 @@ class NexusStore {
         guard let index = alerts.firstIndex(where: { $0.id == alert.id }) else { return }
         alerts[index].isRead = true
         persistToCache()
+        guard dataMode == .live else { return }
         Task {
             do {
                 _ = try await api.markAlertRead(id: alert.id.uuidString.lowercased())
@@ -264,6 +325,7 @@ class NexusStore {
             alerts[i].isRead = true
         }
         persistToCache()
+        guard dataMode == .live else { return }
         Task {
             try? await api.markAllAlertsRead()
         }
@@ -477,6 +539,17 @@ class NexusStore {
             EmailAccount(id: acc3Id, provider: .gmail, emailAddress: "business@gmail.com", displayName: "Business Gmail", isConnected: true, loginStatus: .loggedIn, lastSyncDate: cal.date(byAdding: .hour, value: -1, to: now))
         ]
         saveEmailAccounts()
+
+        entities = [
+            Entity(id: UUID().uuidString, name: "Apex Holdings Pty Ltd", type: .ltd, status: .active, healthScore: 92, creditLimit: 75000, utilisationPercent: 12, monthlyBurn: 45, assignedPhone: "+61 4 5555 0101", assignedEmail: "apex@addy.io", clearScore: 845, lastActivityDate: cal.date(byAdding: .hour, value: -3, to: now)!, isFlagged: false, notes: "Primary vehicle. CBA business account.", createdDate: cal.date(byAdding: .month, value: -14, to: now)!),
+            Entity(id: UUID().uuidString, name: "Jordan Mitchell", type: .person, status: .active, healthScore: 87, creditLimit: 45000, utilisationPercent: 8, monthlyBurn: 29, assignedPhone: "+61 4 5555 0202", assignedEmail: "j.mitchell@addy.io", clearScore: 812, lastActivityDate: cal.date(byAdding: .day, value: -1, to: now)!, isFlagged: false, notes: "Clean profile. Westpac personal.", createdDate: cal.date(byAdding: .month, value: -11, to: now)!),
+            Entity(id: UUID().uuidString, name: "Pinnacle Trust", type: .trust, status: .active, healthScore: 78, creditLimit: 120000, utilisationPercent: 22, monthlyBurn: 52, assignedPhone: "+61 4 5555 0303", assignedEmail: "pinnacle@addy.io", clearScore: 788, lastActivityDate: cal.date(byAdding: .day, value: -4, to: now)!, isFlagged: true, notes: "High limit. Monitor utilisation closely.", createdDate: cal.date(byAdding: .month, value: -9, to: now)!),
+            Entity(id: UUID().uuidString, name: "Velocity Ventures Pty Ltd", type: .ltd, status: .active, healthScore: 95, creditLimit: 60000, utilisationPercent: 5, monthlyBurn: 38, assignedPhone: "+61 4 5555 0404", assignedEmail: "velocity@addy.io", clearScore: 867, lastActivityDate: cal.date(byAdding: .hour, value: -8, to: now)!, isFlagged: false, notes: "NAB business. Excellent standing.", createdDate: cal.date(byAdding: .month, value: -7, to: now)!),
+            Entity(id: UUID().uuidString, name: "Sarah Chen", type: .person, status: .dormant, healthScore: 55, creditLimit: 30000, utilisationPercent: 3, monthlyBurn: 22, assignedPhone: "+61 4 5555 0505", assignedEmail: "s.chen@addy.io", clearScore: 734, lastActivityDate: cal.date(byAdding: .day, value: -45, to: now)!, isFlagged: false, notes: "Needs reactivation. ANZ personal.", createdDate: cal.date(byAdding: .month, value: -18, to: now)!),
+            Entity(id: UUID().uuidString, name: "Orion Group Pty Ltd", type: .ltd, status: .active, healthScore: 84, creditLimit: 90000, utilisationPercent: 18, monthlyBurn: 41, assignedPhone: "+61 4 5555 0606", assignedEmail: "orion@addy.io", clearScore: 801, lastActivityDate: cal.date(byAdding: .day, value: -2, to: now)!, isFlagged: false, notes: "Macquarie business. Strong history.", createdDate: cal.date(byAdding: .month, value: -6, to: now)!),
+            Entity(id: UUID().uuidString, name: "Blake Thompson", type: .person, status: .atRisk, healthScore: 38, creditLimit: 25000, utilisationPercent: 67, monthlyBurn: 35, assignedPhone: "+61 4 5555 0707", assignedEmail: "b.thompson@addy.io", clearScore: 621, lastActivityDate: cal.date(byAdding: .day, value: -12, to: now)!, isFlagged: true, notes: "ClearScore dropping. Reduce utilisation ASAP.", createdDate: cal.date(byAdding: .month, value: -20, to: now)!),
+            Entity(id: UUID().uuidString, name: "Summit Capital Trust", type: .trust, status: .active, healthScore: 71, creditLimit: 55000, utilisationPercent: 28, monthlyBurn: 50, assignedPhone: "+61 4 5555 0808", assignedEmail: "summit@addy.io", clearScore: 756, lastActivityDate: cal.date(byAdding: .day, value: -6, to: now)!, isFlagged: false, notes: "CBA trust account. Moderate activity.", createdDate: cal.date(byAdding: .month, value: -5, to: now)!)
+        ]
 
         communications = [
             Communication(id: UUID(), type: .sms, sender: "CBA", content: "Your CBA account ending 4521 has a new transaction of $2,450.00.", timestamp: cal.date(byAdding: .hour, value: -1, to: now)!, isRead: false, phoneNumber: "+61 4 5555 0101"),

@@ -69,6 +69,63 @@ struct SettingsView: View {
                 }
             }
 
+            Section {
+                HStack(spacing: 12) {
+                    IntegrationIcon(icon: "server.rack", color: backendStatusColor)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Backend")
+                            .font(.subheadline)
+                        Text(backendStatusLabel)
+                            .font(.caption)
+                            .foregroundStyle(backendStatusColor)
+                    }
+                    Spacer()
+                    switch store.backendStatus {
+                    case .checking:
+                        ProgressView()
+                            .controlSize(.small)
+                    case .connected(_):
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    case .unreachable(_):
+                        Button {
+                            Task { await store.checkBackendHealth() }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.subheadline)
+                        }
+                    case .unknown:
+                        Button {
+                            Task { await store.checkBackendHealth() }
+                        } label: {
+                            Image(systemName: "arrow.clockwise")
+                                .font(.subheadline)
+                        }
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    Circle()
+                        .fill(store.dataMode == .live ? Color.green : Color.orange)
+                        .frame(width: 8, height: 8)
+                    Text(store.dataMode == .live ? "Live Data" : "Demo Data")
+                        .font(.caption)
+                        .foregroundStyle(store.dataMode == .live ? .green : .orange)
+                    Spacer()
+                    if store.dataMode == .demo {
+                        Text("Sample mode")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+            } header: {
+                Text("Connection")
+            } footer: {
+                if case .unreachable(let msg) = store.backendStatus {
+                    Text(msg)
+                }
+            }
+
             Section("Appearance") {
                 Picker("Theme", selection: $appearance) {
                     Text("System").tag("system")
@@ -84,9 +141,10 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-                LabeledContent("Cached Messages", value: "\(store.communications.count)")
-                LabeledContent("Cached Emails", value: "\(store.emails.count)")
-                LabeledContent("Cached Alerts", value: "\(store.alerts.count)")
+                LabeledContent("Entities", value: "\(store.entities.count)")
+                LabeledContent("Messages", value: "\(store.communications.count)")
+                LabeledContent("Emails", value: "\(store.emails.count)")
+                LabeledContent("Alerts", value: "\(store.alerts.count)")
             }
 
             if let user = authVM.currentUser {
@@ -163,6 +221,26 @@ struct SettingsView: View {
         let count = store.emailAccounts.count
         guard count > 0 else { return "No accounts" }
         return "\(count) account\(count == 1 ? "" : "s") connected"
+    }
+
+    private var backendStatusColor: Color {
+        switch store.backendStatus {
+        case .connected(_): .green
+        case .checking: .orange
+        case .unreachable(_): .red
+        case .unknown: .secondary
+        }
+    }
+
+    private var backendStatusLabel: String {
+        switch store.backendStatus {
+        case .connected(let version):
+            if let v = version { return "Connected (\(v))" }
+            return "Connected"
+        case .checking: return "Checking..."
+        case .unreachable(_): return "Unreachable"
+        case .unknown: return "Not checked"
+        }
     }
 }
 

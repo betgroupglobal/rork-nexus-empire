@@ -205,6 +205,34 @@ class NexusAPIService {
     func markAllAlertsRead() async throws {
         let _: SuccessResponse = try await performMutation(procedure: "alerts.markAllRead", input: EmptyInput())
     }
+
+    func fetchEntities() async throws -> [Entity] {
+        let dtos: [EntityDTO] = try await performQuery(procedure: "entities.list")
+        return dtos.map { $0.toModel() }
+    }
+
+    func fetchDashboard() async throws -> DashboardResponse {
+        try await performQuery(procedure: "entities.dashboard")
+    }
+
+    func fetchEntity(id: String) async throws -> Entity {
+        let dto: EntityDTO = try await performQuery(procedure: "entities.getById", input: IDInput(id: id))
+        return dto.toModel()
+    }
+
+    func checkHealth() async throws -> BackendHealthResponse {
+        guard !baseURL.isEmpty else { throw APIError.notConfigured }
+        let apiBase = baseURL.replacingOccurrences(of: "/api/trpc", with: "/api")
+        guard let url = URL(string: apiBase) else { throw APIError.invalidURL }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 10
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, http.statusCode < 400 else {
+            throw APIError.serverError((response as? HTTPURLResponse)?.statusCode ?? 0, "Backend unreachable")
+        }
+        return try decoder.decode(BackendHealthResponse.self, from: data)
+    }
 }
 
 nonisolated struct AnyEncodable: Encodable, Sendable {
