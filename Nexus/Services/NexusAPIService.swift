@@ -122,14 +122,7 @@ class NexusAPIService {
 
         let (data, response) = try await session.data(for: request)
 
-        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 400 {
-            if let trpcError = try? decoder.decode(TRPCErrorResponse.self, from: data),
-               let message = trpcError.error.message ?? trpcError.error.data?.message {
-                throw APIError.serverError(httpResponse.statusCode, message)
-            }
-            let body = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw APIError.serverError(httpResponse.statusCode, body)
-        }
+        try Self.checkHTTPError(data: data, response: response, decoder: decoder)
 
         let trpcResponse = try decoder.decode(TRPCResponse<T>.self, from: data)
         return trpcResponse.result.data.json
@@ -153,17 +146,25 @@ class NexusAPIService {
 
         let (data, response) = try await session.data(for: request)
 
-        if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode >= 400 {
-            if let trpcError = try? decoder.decode(TRPCErrorResponse.self, from: data),
-               let message = trpcError.error.message ?? trpcError.error.data?.message {
-                throw APIError.serverError(httpResponse.statusCode, message)
-            }
-            let body = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw APIError.serverError(httpResponse.statusCode, body)
-        }
+        try Self.checkHTTPError(data: data, response: response, decoder: decoder)
 
         let trpcResponse = try decoder.decode(TRPCResponse<T>.self, from: data)
         return trpcResponse.result.data.json
+    }
+
+    private static func checkHTTPError(data: Data, response: URLResponse, decoder: JSONDecoder) throws {
+        guard let http = response as? HTTPURLResponse else { return }
+        let body = String(data: data, encoding: .utf8) ?? ""
+        let isHTML = body.contains("<html") || body.contains("<!DOCTYPE") || body.contains("<HTML")
+        if isHTML {
+            throw APIError.serverError(http.statusCode, "Server returned an unexpected response. Please try again.")
+        }
+        guard http.statusCode >= 400 else { return }
+        if let trpcError = try? decoder.decode(TRPCErrorResponse.self, from: data) {
+            let message = trpcError.error.message ?? trpcError.error.data?.message ?? "Server error"
+            throw APIError.serverError(http.statusCode, message)
+        }
+        throw APIError.serverError(http.statusCode, "Server error (\(http.statusCode)). Please try again.")
     }
 
     func fetchCommunications() async throws -> [Communication] {

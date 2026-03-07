@@ -105,18 +105,22 @@ class AuthService {
             let trpc = try decoder.decode(TRPCResponse<T>.self, from: data)
             return trpc.result.data.json
         } catch {
-            let raw = String(data: data, encoding: .utf8) ?? "empty"
-            throw APIError.serverError(0, "Failed to decode response: \(raw.prefix(200))")
+            throw APIError.serverError(0, "Server returned an unexpected response. Please try again.")
         }
     }
 
     private func checkHTTPError(data: Data, response: URLResponse) throws {
-        guard let http = response as? HTTPURLResponse, http.statusCode >= 400 else { return }
+        guard let http = response as? HTTPURLResponse else { return }
+        let body = String(data: data, encoding: .utf8) ?? ""
+        let isHTML = body.contains("<html") || body.contains("<!DOCTYPE") || body.contains("<HTML")
+        if isHTML {
+            throw APIError.serverError(http.statusCode, "Server returned an unexpected response. Please try again.")
+        }
+        guard http.statusCode >= 400 else { return }
         if let trpcError = try? decoder.decode(TRPCErrorResponse.self, from: data) {
             let message = trpcError.error.message ?? trpcError.error.data?.message ?? "Server error"
             throw APIError.serverError(http.statusCode, message)
         }
-        let body = String(data: data, encoding: .utf8) ?? "Unknown error"
-        throw APIError.serverError(http.statusCode, body)
+        throw APIError.serverError(http.statusCode, "Server error (\(http.statusCode)). Please try again.")
     }
 }
