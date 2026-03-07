@@ -32,6 +32,11 @@ Package.resolved
 .rork/
 .env
 
+# Common generated artifacts
+dist/
+.cache/
+*.log
+
 core
 node_modules
 .expo
