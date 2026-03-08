@@ -310,11 +310,7 @@ function renderFocusRoster() {
 }
 
 function renderWarRoom() {
-  renderPowerState();
-  renderMetricCards();
-  renderPriorityQueue();
   renderActivity();
-  renderFocusRoster();
 }
 
 function renderSubjectOptions() {

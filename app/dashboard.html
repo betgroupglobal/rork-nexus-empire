@@ -71,30 +71,7 @@
         </header>
 
         <section class="panel active" id="panel-warroom">
-          <section class="hero-ribbon">
-            <div class="hero-power-card" style="margin: 0 auto; text-align: center;">
-              <div class="hero-power-label">Operational power</div>
-              <div id="hero-power-value" class="hero-power-value rating-high">0%</div>
-              <div class="meta" id="hero-power-sub">of maximum potential reached</div>
-            </div>
-          </section>
-
-          <section class="workflow-grid" style="grid-template-columns: 1fr;">
-            <article class="workspace-card queue-card">
-              <div class="card-head">
-                <div>
-                  <div class="card-label">Priority queue</div>
-                  <h2>Immediate movement</h2>
-                </div>
-                <button class="btn btn-ghost" id="btn-refresh-fab" type="button">Sync all</button>
-              </div>
-              <div id="priority-queue" class="queue-stack"></div>
-            </article>
-          </section>
-
-          <section class="metric-grid" id="warroom-stats"></section>
-
-          <section class="insight-grid">
+          <section class="insight-grid" style="grid-template-columns: 1fr;">
             <article class="workspace-card table-card">
               <div class="card-head">
                 <div>
@@ -113,17 +90,6 @@
                 </thead>
                 <tbody id="activity-rows"></tbody>
               </table>
-            </article>
-
-            <article class="workspace-card">
-              <div class="card-head">
-                <div>
-                  <div class="card-label">Focus roster</div>
-                  <h2>Best-positioned subjects</h2>
-                </div>
-                <div class="card-note">Strongest records by health and headroom</div>
-              </div>
-              <div id="focus-roster" class="focus-list"></div>
             </article>
           </section>
         </section>
