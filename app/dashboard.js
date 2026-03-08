@@ -313,7 +313,6 @@ function renderWarRoom() {
   renderPowerState();
   renderMetricCards();
   renderPriorityQueue();
-  renderSpotlight();
   renderActivity();
   renderFocusRoster();
 }

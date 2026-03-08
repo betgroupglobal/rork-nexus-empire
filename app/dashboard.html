@@ -72,47 +72,14 @@
 
         <section class="panel active" id="panel-warroom">
           <section class="hero-ribbon">
-            <div class="hero-copy">
-              <div class="eyebrow">Overview</div>
-              <h2 class="hero-title">A cleaner command workflow with deliberate signal, credential control and clear next steps.</h2>
-              <p class="hero-text">The experience is structured to start with identity, move into pressure points, and then flow into the live records that need attention.</p>
-              <div class="hero-actions">
-                <button class="btn btn-primary" id="btn-refresh-all" type="button">Refresh workspace</button>
-                <button class="btn btn-ghost" id="btn-me" type="button">Who am I</button>
-                <button class="btn btn-ghost" id="btn-logout" type="button">Logout</button>
-              </div>
-            </div>
-            <div class="hero-power-card">
+            <div class="hero-power-card" style="margin: 0 auto; text-align: center;">
               <div class="hero-power-label">Operational power</div>
               <div id="hero-power-value" class="hero-power-value rating-high">0%</div>
               <div class="meta" id="hero-power-sub">of maximum potential reached</div>
             </div>
           </section>
 
-          <section class="workflow-grid">
-            <article class="workspace-card credential-card">
-              <div class="card-head">
-                <div>
-                  <div class="card-label">Credential desk</div>
-                  <h2>Access and session</h2>
-                </div>
-                <div class="card-note" id="auth-message">Use login or register for authenticated checks.</div>
-              </div>
-              <div class="form-stack">
-                <form id="login-form" class="form-grid compact-grid">
-                  <input name="email" type="email" placeholder="Email" required />
-                  <input name="password" type="password" placeholder="Password" required />
-                  <button class="btn btn-primary" type="submit">Login</button>
-                </form>
-                <form id="register-form" class="form-grid compact-grid">
-                  <input name="name" type="text" placeholder="Name" required />
-                  <input name="email" type="email" placeholder="Email" required />
-                  <input name="password" type="password" placeholder="Password (min 6)" required />
-                  <button class="btn btn-soft" type="submit">Register</button>
-                </form>
-              </div>
-            </article>
-
+          <section class="workflow-grid" style="grid-template-columns: 1fr;">
             <article class="workspace-card queue-card">
               <div class="card-head">
                 <div>
@@ -122,17 +89,6 @@
                 <button class="btn btn-ghost" id="btn-refresh-fab" type="button">Sync all</button>
               </div>
               <div id="priority-queue" class="queue-stack"></div>
-            </article>
-
-            <article class="workspace-card spotlight-card-wrap">
-              <div class="card-head">
-                <div>
-                  <div class="card-label">Pipeline</div>
-                  <h2>Longest-running application</h2>
-                </div>
-                <div class="card-note">Oldest in-flight record</div>
-              </div>
-              <div id="longest-active"></div>
             </article>
           </section>
 
