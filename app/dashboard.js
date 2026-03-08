@@ -24,8 +24,8 @@ const tabs = {
 
 const tabConfig = {
   warroom: {
-    title: "War Room",
-    subtitle: "Overview of live health, credentials, pressure points and next action.",
+    title: "Recent Activity",
+    subtitle: "Latest movements across the platform.",
   },
   subjects: {
     title: "Subjects",

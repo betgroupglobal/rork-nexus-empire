@@ -20,7 +20,7 @@
 
         <nav class="nav-stack">
           <button class="tab-btn active" data-tab="warroom" type="button">
-            <span>War Room</span>
+            <span>Recent Activity</span>
             <span class="nav-count" id="nav-warroom-count">0</span>
           </button>
           <button class="tab-btn" data-tab="subjects" type="button">
@@ -57,24 +57,25 @@
 
         <section class="panel active" id="panel-warroom">
           <section class="insight-grid" style="grid-template-columns: 1fr;">
-            <article class="workspace-card table-card">
-              <div class="card-head">
+            <article class="workspace-card table-card" style="border: none; box-shadow: none; padding: 0;">
+              <div class="card-head" style="margin-bottom: 16px;">
                 <div>
-                  <div class="card-label">Signal log</div>
-                  <h2>Recent activity</h2>
+                  <div class="card-label">Recent Activity</div>
+                  <h2>Signal log</h2>
                 </div>
-                <div class="card-note">Last movement across the platform</div>
               </div>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Event</th>
-                    <th>Impact</th>
-                    <th>Time</th>
-                  </tr>
-                </thead>
-                <tbody id="activity-rows"></tbody>
-              </table>
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Event</th>
+                      <th>Impact</th>
+                      <th>Time</th>
+                    </tr>
+                  </thead>
+                  <tbody id="activity-rows"></tbody>
+                </table>
+              </div>
             </article>
           </section>
         </section>
