@@ -40,6 +40,14 @@ struct Subject: Identifiable, Hashable, Sendable, Codable {
     var dateOfBirth: String
     var address: String
     var idNumber: String
+    var dlNumber: String?
+    var dlCardNumber: String?
+    var dlExpiry: String?
+    var medicareNumber: String?
+    var medicareExpiry: String?
+    var passportNumber: String?
+    var passportExpiry: String?
+    var creditNotes: String?
     var applications: [CreditApplication]
 
     var banksApplied: [String] {

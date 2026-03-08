@@ -128,14 +128,43 @@ class NexusAPIService {
         try await performQuery(procedure: "entities.dashboard")
     }
 
-    func createSubject(name: String, type: SubjectType, creditLimit: Double, assignedPhone: String, assignedEmail: String, notes: String?) async throws -> Subject {
+    func createSubject(
+        name: String,
+        type: SubjectType,
+        creditLimit: Double,
+        assignedPhone: String,
+        assignedEmail: String,
+        notes: String?,
+        dateOfBirth: String? = nil,
+        address: String? = nil,
+        idNumber: String? = nil,
+        dlNumber: String? = nil,
+        dlCardNumber: String? = nil,
+        dlExpiry: String? = nil,
+        medicareNumber: String? = nil,
+        medicareExpiry: String? = nil,
+        passportNumber: String? = nil,
+        passportExpiry: String? = nil,
+        creditNotes: String? = nil
+    ) async throws -> Subject {
         let input = CreateEntityInput(
             name: name,
             type: type.rawValue,
             creditLimit: creditLimit,
             assignedPhone: assignedPhone,
             assignedEmail: assignedEmail,
-            notes: notes
+            notes: notes,
+            dateOfBirth: dateOfBirth,
+            address: address,
+            idNumber: idNumber,
+            dlNumber: dlNumber,
+            dlCardNumber: dlCardNumber,
+            dlExpiry: dlExpiry,
+            medicareNumber: medicareNumber,
+            medicareExpiry: medicareExpiry,
+            passportNumber: passportNumber,
+            passportExpiry: passportExpiry,
+            creditNotes: creditNotes
         )
         let dto: EntityDTO = try await performMutation(procedure: "entities.create", input: input)
         return dto.toModel()
@@ -194,6 +223,17 @@ class NexusAPIService {
         }
         let dtos: [EmailDTO] = try await performQuery(procedure: "emails.list")
         return dtos.map { $0.toModel() }
+    }
+
+    func sendEmail(entityId: String, to: String, subject: String, content: String) async throws -> EmailMessage {
+        struct Input: Encodable {
+            let entityId: String
+            let to: String
+            let subject: String
+            let content: String
+        }
+        let dto: EmailDTO = try await performMutation(procedure: "emails.send", input: Input(entityId: entityId, to: to, subject: subject, content: content))
+        return dto.toModel()
     }
 
     func syncMailbox() async throws -> SyncMailboxResponse {

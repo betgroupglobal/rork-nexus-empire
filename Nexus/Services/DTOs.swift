@@ -124,6 +124,17 @@ nonisolated struct EntityDTO: Codable, Sendable {
     let isFlagged: Bool
     let notes: String
     let createdDate: String
+    let dateOfBirth: String?
+    let address: String?
+    let idNumber: String?
+    let dlNumber: String?
+    let dlCardNumber: String?
+    let dlExpiry: String?
+    let medicareNumber: String?
+    let medicareExpiry: String?
+    let passportNumber: String?
+    let passportExpiry: String?
+    let creditNotes: String?
 
     func toModel() -> Subject {
         let iso = ISO8601DateFormatter()
@@ -146,9 +157,17 @@ nonisolated struct EntityDTO: Codable, Sendable {
             isFlagged: isFlagged,
             notes: notes,
             createdDate: iso.date(from: createdDate) ?? Date(),
-            dateOfBirth: "",
-            address: "",
-            idNumber: "",
+            dateOfBirth: dateOfBirth ?? "",
+            address: address ?? "",
+            idNumber: idNumber ?? "",
+            dlNumber: dlNumber,
+            dlCardNumber: dlCardNumber,
+            dlExpiry: dlExpiry,
+            medicareNumber: medicareNumber,
+            medicareExpiry: medicareExpiry,
+            passportNumber: passportNumber,
+            passportExpiry: passportExpiry,
+            creditNotes: creditNotes,
             applications: []
         )
     }
@@ -239,6 +258,17 @@ nonisolated struct CreateEntityInput: Codable, Sendable {
     let assignedPhone: String
     let assignedEmail: String
     let notes: String?
+    let dateOfBirth: String?
+    let address: String?
+    let idNumber: String?
+    let dlNumber: String?
+    let dlCardNumber: String?
+    let dlExpiry: String?
+    let medicareNumber: String?
+    let medicareExpiry: String?
+    let passportNumber: String?
+    let passportExpiry: String?
+    let creditNotes: String?
 }
 
 nonisolated struct UpdateEntityInput: Codable, Sendable {
@@ -255,6 +285,17 @@ nonisolated struct UpdateEntityInput: Codable, Sendable {
     let clearScore: Int?
     let isFlagged: Bool?
     let notes: String?
+    let dateOfBirth: String?
+    let address: String?
+    let idNumber: String?
+    let dlNumber: String?
+    let dlCardNumber: String?
+    let dlExpiry: String?
+    let medicareNumber: String?
+    let medicareExpiry: String?
+    let passportNumber: String?
+    let passportExpiry: String?
+    let creditNotes: String?
 }
 
 nonisolated struct CommFilterInput: Codable, Sendable {
