@@ -20,6 +20,7 @@ const tabs = {
   comms: document.getElementById("panel-comms"),
   email: document.getElementById("panel-email"),
   alerts: document.getElementById("panel-alerts"),
+  crazytel: document.getElementById("panel-crazytel"),
 };
 
 const tabConfig = {
@@ -42,6 +43,10 @@ const tabConfig = {
   alerts: {
     title: "Alerts",
     subtitle: "Keep urgency precise, easy to scan and fast to clear.",
+  },
+  crazytel: {
+    title: "CrazyTel",
+    subtitle: "Manage owned DIDs, check balance, and send SMS.",
   },
 };
 
@@ -876,6 +881,51 @@ function attachEventHandlers() {
     } catch (error) {
       setAuthMessage(String(error));
     }
+  });
+
+  document.getElementById("btn-crazytel-auth")?.addEventListener("click", async () => {
+    const key = String(document.getElementById("crazytel-api-key").value || "");
+    if (!key) {
+      setAuthMessage("CrazyTel API Key required");
+      return;
+    }
+    const btn = document.getElementById("btn-crazytel-auth");
+    const originalText = btn.textContent;
+    btn.textContent = "Checking...";
+    try {
+      const authRes = await trpcMutation("crazytel.testConnection", { apiKey: key });
+      if (!authRes.success) throw new Error(authRes.error);
+      btn.textContent = "Authorized";
+      btn.classList.add("btn-success");
+      
+      const balanceRes = await trpcQuery("crazytel.fetchBalance", { apiKey: key });
+      if (balanceRes && balanceRes.balance !== undefined) {
+        document.getElementById("crazytel-balance-pill").textContent = `Balance: $${balanceRes.balance.toFixed(2)}`;
+      }
+
+      const dids = await trpcQuery("crazytel.fetchOwnedDIDs", { apiKey: key });
+      const tbody = document.getElementById("crazytel-dids-list");
+      if (dids && dids.length > 0) {
+        tbody.innerHTML = dids.map(d => `
+          <tr>
+            <td class="font-medium">${d.did_number}</td>
+            <td>${d.description || "-"}</td>
+            <td><span class="mini-badge ${d.status === 'Active' ? 'success' : 'warn'}">${d.status || "Unknown"}</span></td>
+            <td>${d.primary_route || "-"}</td>
+            <td>${d.primary_destination || "-"}</td>
+          </tr>
+        `).join("");
+      } else {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted">No numbers found on this account.</td></tr>`;
+      }
+    } catch (error) {
+      setAuthMessage(String(error));
+      btn.textContent = "Failed";
+    }
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.classList.remove("btn-success");
+    }, 2000);
   });
 
   document.body.addEventListener("click", handleRootClick);

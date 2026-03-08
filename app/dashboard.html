@@ -39,6 +39,9 @@
             <span>Alerts</span>
             <span class="nav-count" id="nav-alerts-count">0</span>
           </button>
+          <button class="tab-btn" data-tab="crazytel" type="button">
+            <span>CrazyTel</span>
+          </button>
         </nav>
       </aside>
 
@@ -312,6 +315,54 @@
               <div class="card-note">Prioritised for clearer scanning</div>
             </div>
             <div id="alerts-list" class="record-list"></div>
+          </article>
+        </section>
+        <section class="panel" id="panel-crazytel">
+          <div class="section-head">
+            <div>
+              <div class="eyebrow">CrazyTel</div>
+              <h2>Telecommunications</h2>
+              <p class="subtitle">Manage DIDs, addresses, owners, and send SMS messages directly.</p>
+            </div>
+            <div class="summary-pill" id="crazytel-balance-pill">Balance: $0.00</div>
+          </div>
+
+          <section class="section-grid" style="grid-template-columns: 1fr;">
+            <article class="workspace-card" style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div class="card-label">Configuration</div>
+                <h2>API Key required</h2>
+              </div>
+              <div class="form-grid compact-grid" style="flex: 1; max-width: 600px; margin: 0 20px;">
+                <input id="crazytel-api-key" type="password" placeholder="Enter CrazyTel API Key" />
+                <button class="btn btn-primary" id="btn-crazytel-auth" type="button">Authenticate</button>
+              </div>
+            </article>
+          </section>
+
+          <article class="workspace-card data-surface" style="padding: 0; overflow: hidden; margin-top: 20px;">
+            <div class="card-head" style="padding: 20px;">
+              <div>
+                <div class="card-label">Numbers</div>
+                <h2>Owned DIDs</h2>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Number</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th>Primary Route</th>
+                    <th>Destination</th>
+                  </tr>
+                </thead>
+                <tbody id="crazytel-dids-list">
+                  <tr><td colspan="5" class="text-center">Authenticate to view numbers</td></tr>
+                </tbody>
+              </table>
+            </div>
           </article>
         </section>
       </main>
