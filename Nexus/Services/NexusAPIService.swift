@@ -41,7 +41,7 @@ class NexusAPIService {
         return URL(string: urlString)
     }
 
-    private func performQuery<T: Decodable & Sendable>(procedure: String, input: (any Encodable)? = nil) async throws -> T {
+    func performQuery<T: Decodable & Sendable>(procedure: String, input: (any Encodable)? = nil) async throws -> T {
         guard let url = buildQueryURL(procedure: procedure, input: input) else {
             throw APIError.invalidURL
         }
@@ -58,7 +58,7 @@ class NexusAPIService {
         return trpcResponse.result.data.json
     }
 
-    private func performMutation<T: Decodable & Sendable>(procedure: String, input: any Encodable) async throws -> T {
+    func performMutation<T: Decodable & Sendable>(procedure: String, input: any Encodable) async throws -> T {
         guard !baseURL.isEmpty else { throw APIError.invalidURL }
         guard let url = URL(string: "\(baseURL)/\(procedure)") else {
             throw APIError.invalidURL
@@ -194,6 +194,10 @@ class NexusAPIService {
         }
         let dtos: [EmailDTO] = try await performQuery(procedure: "emails.list")
         return dtos.map { $0.toModel() }
+    }
+
+    func syncMailbox() async throws -> SyncMailboxResponse {
+        return try await performMutation(procedure: "emails.syncMailbox", input: EmptyInput())
     }
 
     func fetchAlerts(type: String? = nil) async throws -> [NexusAlert] {

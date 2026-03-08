@@ -226,6 +226,12 @@ nonisolated struct IDInput: Codable, Sendable {
 
 nonisolated struct EmptyInput: Codable, Sendable {}
 
+nonisolated struct SyncMailboxResponse: Codable, Sendable {
+    let success: Bool
+    let syncedCount: Int
+    let message: String
+}
+
 nonisolated struct CreateEntityInput: Codable, Sendable {
     let name: String
     let type: String

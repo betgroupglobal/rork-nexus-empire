@@ -61,6 +61,41 @@ export const crazytelRouter = createTRPCRouter({
       return crazytelRequest("/phone-numbers/", input.apiKey);
     }),
 
+  fetchAvailableNumbers: publicProcedure
+    .input(z.object({ apiKey: z.string() }))
+    .query(async ({ input }) => {
+      return crazytelRequest("/phone-numbers/available-numbers/", input.apiKey);
+    }),
+
+  fetchAddresses: publicProcedure
+    .input(z.object({ apiKey: z.string() }))
+    .query(async ({ input }) => {
+      return crazytelRequest("/phone-numbers/addresses/", input.apiKey);
+    }),
+
+  fetchOwners: publicProcedure
+    .input(z.object({ apiKey: z.string() }))
+    .query(async ({ input }) => {
+      return crazytelRequest("/phone-numbers/owners/", input.apiKey);
+    }),
+
+  purchaseDID: publicProcedure
+    .input(
+      z.object({
+        apiKey: z.string(),
+        number: z.string(),
+        addressId: z.string(),
+        ownerId: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      return crazytelRequest("/phone-numbers/purchase", input.apiKey, "POST", {
+        number: input.number,
+        addressId: input.addressId,
+        ownerId: input.ownerId,
+      });
+    }),
+
   sendSMS: publicProcedure
     .input(
       z.object({

@@ -244,6 +244,16 @@ class NexusStore {
         await loadData()
     }
 
+    func syncMailbox() async {
+        guard dataMode == .live else { return }
+        do {
+            let _ = try await api.syncMailbox()
+            await loadData() // Refresh everything after a sync
+        } catch {
+            print("Failed to sync mailbox: \(error)")
+        }
+    }
+
     func markCommRead(_ comm: Communication) {
         guard let index = communications.firstIndex(where: { $0.id == comm.id }) else { return }
         communications[index].isRead = true
