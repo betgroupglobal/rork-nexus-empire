@@ -57,7 +57,38 @@ function setStatus(text, mode = "warn") {
 }
 
 function setAuthMessage(text) {
-  document.getElementById("auth-message").textContent = text;
+  if (!text) return;
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+  
+  const toast = document.createElement("div");
+  toast.style.background = "#fff";
+  toast.style.border = "1px solid #E2E8F0";
+  toast.style.boxShadow = "0 4px 6px -1px rgba(0, 0, 0, 0.1)";
+  toast.style.padding = "12px 20px";
+  toast.style.borderRadius = "8px";
+  toast.style.fontSize = "14px";
+  toast.style.color = "#0F172A";
+  toast.style.fontWeight = "500";
+  toast.style.opacity = "0";
+  toast.style.transform = "translateY(10px)";
+  toast.style.transition = "all 0.3s ease";
+  
+  toast.textContent = text;
+  container.appendChild(toast);
+  
+  // Animate in
+  setTimeout(() => {
+    toast.style.opacity = "1";
+    toast.style.transform = "translateY(0)";
+  }, 10);
+  
+  // Remove after 4 seconds
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateY(10px)";
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
 }
 
 function setAuthUser(user) {
