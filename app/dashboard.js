@@ -335,6 +335,15 @@ function renderSubjectOptions() {
   if (createValue && state.subjects.some((subject) => subject.id === createValue)) {
     createSelect.value = createValue;
   }
+
+  const smsSelect = document.getElementById("sms-subject");
+  if (smsSelect) {
+    const smsValue = smsSelect.value;
+    smsSelect.innerHTML = createOptions;
+    if (smsValue && state.subjects.some((subject) => subject.id === smsValue)) {
+      smsSelect.value = smsValue;
+    }
+  }
 }
 
 function getFilteredSubjects() {
@@ -677,6 +686,50 @@ async function handleCreateComm(event) {
   }
 }
 
+async function handleSendSMS(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const formData = new FormData(form);
+  const apiKey = String(formData.get("apiKey") || "");
+  const from = String(formData.get("from") || "");
+  const to = String(formData.get("to") || "");
+  const message = String(formData.get("message") || "");
+  const subjectId = String(formData.get("subjectId") || "");
+
+  try {
+    // Send SMS via CrazyTel integration
+    await trpcMutation("crazytel.sendSMS", { apiKey, from, to, message });
+
+    // Also log it as a communication if a subject is selected
+    const subject = state.subjects.find((item) => item.id === subjectId);
+    if (subject) {
+      await trpcMutation("communications.create", {
+        subjectId,
+        subjectName: subject.name,
+        type: "SMS",
+        sender: from,
+        content: message,
+        phoneNumber: to,
+      });
+    }
+
+    form.reset();
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = "Sent!";
+    submitBtn.classList.add("btn-success");
+    setTimeout(() => {
+      submitBtn.textContent = originalText;
+      submitBtn.classList.remove("btn-success");
+      document.getElementById("sms-modal")?.close();
+    }, 1000);
+
+    await refreshAll();
+  } catch (error) {
+    setAuthMessage(String(error));
+  }
+}
+
 async function handleRootClick(event) {
   const target = event.target;
   if (!(target instanceof HTMLElement)) return;
@@ -738,6 +791,7 @@ function attachEventHandlers() {
     .getElementById("subject-create-form")
     .addEventListener("submit", handleCreateSubject);
   document.getElementById("comm-create-form").addEventListener("submit", handleCreateComm);
+  document.getElementById("sms-send-form")?.addEventListener("submit", handleSendSMS);
 
   document.getElementById("btn-refresh-all").addEventListener("click", refreshAll);
   document.getElementById("btn-refresh-fab").addEventListener("click", refreshAll);
@@ -787,6 +841,26 @@ function attachEventHandlers() {
     renderEmails();
   });
 
+  document.getElementById("btn-sync-mailbox")?.addEventListener("click", async (e) => {
+    const btn = e.currentTarget;
+    const originalText = btn.textContent;
+    btn.textContent = "Syncing...";
+    try {
+      const res = await trpcMutation("emails.syncMailbox", null);
+      setAuthMessage(res.message);
+      btn.textContent = "Synced!";
+      btn.classList.add("btn-success");
+      await refreshAll();
+    } catch (error) {
+      setAuthMessage(String(error));
+      btn.textContent = "Failed";
+    }
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.classList.remove("btn-success");
+    }, 2000);
+  });
+
   document.getElementById("alerts-filter-apply").addEventListener("click", async () => {
     state.filters.alerts.type = String(document.getElementById("alerts-filter-type").value || "");
     await loadAlerts();
@@ -809,6 +883,7 @@ function attachEventHandlers() {
   // Modal handlers
   const subjectModal = document.getElementById("subject-modal");
   const commModal = document.getElementById("comm-modal");
+  const smsModal = document.getElementById("sms-modal");
 
   document.getElementById("btn-open-subject-modal")?.addEventListener("click", () => {
     subjectModal.showModal();
@@ -830,8 +905,18 @@ function attachEventHandlers() {
     commModal.close();
   });
 
+  document.getElementById("btn-open-sms-modal")?.addEventListener("click", () => {
+    smsModal.showModal();
+  });
+  document.getElementById("btn-close-sms-modal")?.addEventListener("click", () => {
+    smsModal.close();
+  });
+  document.getElementById("btn-cancel-sms")?.addEventListener("click", () => {
+    smsModal.close();
+  });
+
   // Close modals when clicking outside
-  [subjectModal, commModal].forEach(modal => {
+  [subjectModal, commModal, smsModal].forEach(modal => {
     modal?.addEventListener("click", (e) => {
       const dialogDimensions = modal.getBoundingClientRect()
       if (

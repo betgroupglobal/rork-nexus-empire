@@ -170,7 +170,10 @@
                 </select>
                 <button class="btn btn-ghost" id="comms-filter-apply" type="button">Apply</button>
               </div>
-              <button class="btn btn-primary" id="btn-open-comm-modal" type="button">+ Log comm</button>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-primary" id="btn-open-comm-modal" type="button">+ Log comm</button>
+                <button class="btn btn-primary" id="btn-open-sms-modal" type="button" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">Send SMS (CrazyTel)</button>
+              </div>
             </article>
           </section>
 
@@ -216,6 +219,7 @@
                   <option value="General">General</option>
                 </select>
                 <button class="btn btn-ghost" id="emails-filter-apply" type="button">Apply filters</button>
+                <button class="btn btn-primary" id="btn-sync-mailbox" type="button" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">Sync Mailbox</button>
               </div>
             </article>
 
@@ -371,6 +375,26 @@
           <div class="modal-actions" style="grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
             <button class="btn btn-ghost" type="button" id="btn-cancel-comm">Cancel</button>
             <button class="btn btn-primary" type="submit">Log communication</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
+    <dialog id="sms-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Send SMS (CrazyTel)</h2>
+          <button class="btn-icon" id="btn-close-sms-modal">&times;</button>
+        </div>
+        <form id="sms-send-form" class="form-grid wide-grid">
+          <select name="subjectId" id="sms-subject"></select>
+          <input name="apiKey" type="password" placeholder="CrazyTel API Key" required />
+          <input name="from" type="text" placeholder="From Number" required />
+          <input name="to" type="text" placeholder="To Number" required />
+          <input name="message" type="text" placeholder="Message content" required />
+          <div class="modal-actions" style="grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+            <button class="btn btn-ghost" type="button" id="btn-cancel-sms">Cancel</button>
+            <button class="btn btn-primary" type="submit" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">Send SMS</button>
           </div>
         </form>
       </div>

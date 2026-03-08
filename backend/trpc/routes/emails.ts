@@ -42,4 +42,45 @@ export const emailsRouter = createTRPCRouter({
       db.emails[idx]!.isFlagged = !db.emails[idx]!.isFlagged;
       return db.emails[idx]!;
     }),
+
+  send: publicProcedure
+    .input(
+      z.object({
+        entityId: z.string().uuid(),
+        subject: z.string(),
+        content: z.string(),
+        to: z.string(),
+      })
+    )
+    .mutation(({ input }) => {
+      const entity = db.entities.find((e) => e.id === input.entityId);
+      if (!entity) throw new Error("Entity not found");
+
+      const newEmail = {
+        id: crypto.randomUUID(),
+        entityId: entity.id,
+        entityName: entity.name,
+        sender: "Nexus System",
+        senderAddress: "system@nexus.local",
+        subject: input.subject,
+        snippet: input.content.substring(0, 100),
+        category: "General" as const,
+        timestamp: new Date().toISOString(),
+        isRead: true,
+        isFlagged: false,
+        containsDollarAmount: input.content.includes("$"),
+        alias: input.to,
+      };
+
+      db.emails.unshift(newEmail);
+      return newEmail;
+    }),
+
+  syncMailbox: publicProcedure
+    .mutation(async () => {
+      // Mock mailbox sync integration
+      // In a real scenario, this would connect to IMAP/Exchange
+      const syncedCount = Math.floor(Math.random() * 5);
+      return { success: true, syncedCount, message: `Synced ${syncedCount} new emails from remote mailbox.` };
+    }),
 });

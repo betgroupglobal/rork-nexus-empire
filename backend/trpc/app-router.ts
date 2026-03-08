@@ -4,6 +4,7 @@ import { communicationsRouter } from "./routes/communications";
 import { emailsRouter } from "./routes/emails";
 import { alertsRouter } from "./routes/alerts";
 import { authRouter } from "./routes/auth";
+import { crazytelRouter } from "./routes/crazytel";
 
 export const appRouter = createTRPCRouter({
   auth: authRouter,
@@ -11,6 +12,7 @@ export const appRouter = createTRPCRouter({
   communications: communicationsRouter,
   emails: emailsRouter,
   alerts: alertsRouter,
+  crazytel: crazytelRouter,
 });
 
 export type AppRouter = typeof appRouter;
