@@ -589,8 +589,18 @@ async function handleCreateSubject(event) {
 
     await trpcMutation("entities.create", payload);
     form.reset();
+    
+    // Provide a smooth feedback
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = "Created!";
+    submitBtn.classList.add("btn-success");
+    setTimeout(() => {
+      submitBtn.textContent = originalText;
+      submitBtn.classList.remove("btn-success");
+    }, 2000);
+    
     await refreshAll();
-    selectTab("subjects");
   } catch (error) {
     setAuthMessage(String(error));
   }
@@ -648,8 +658,18 @@ async function handleCreateComm(event) {
       transcription: String(formData.get("transcription") || "") || null,
     });
     form.reset();
+
+    // Provide a smooth feedback
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = "Created!";
+    submitBtn.classList.add("btn-success");
+    setTimeout(() => {
+      submitBtn.textContent = originalText;
+      submitBtn.classList.remove("btn-success");
+    }, 2000);
+
     await refreshAll();
-    selectTab("comms");
   } catch (error) {
     setAuthMessage(String(error));
   }
