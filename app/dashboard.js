@@ -366,7 +366,7 @@ function renderSubjects() {
     ? items
         .map((subject) => {
           const availableHeadroom = subject.creditLimit * (1 - subject.utilisationPercent / 100);
-          return `<div class="record-row"><div class="record-top"><div><div class="record-title">${escapeHtml(subject.name)}</div><div class="meta">${escapeHtml(subject.notes || "No notes")}</div></div><div class="record-tags"><span class="${makeBadgeClass("badge", subject.status)}">${escapeHtml(subject.status)}</span><span class="${scoreClass(subject.healthScore)}">Score ${escapeHtml(subject.healthScore)}</span></div></div><div class="record-meta-grid"><div><span class="field-label">Type</span><span class="field-value">${escapeHtml(subject.type)}</span></div><div><span class="field-label">Assigned email</span><span class="field-value">${escapeHtml(subject.assignedEmail)}</span></div><div><span class="field-label">Assigned phone</span><span class="field-value">${escapeHtml(subject.assignedPhone)}</span></div><div><span class="field-label">Credit limit</span><span class="field-value">${escapeHtml(formatCurrency(subject.creditLimit))}</span></div><div><span class="field-label">Headroom</span><span class="field-value">${escapeHtml(formatCurrency(availableHeadroom))}</span></div><div><span class="field-label">Applications</span><span class="field-value">${escapeHtml(subject.applications.length)}</span></div></div><div class="row-actions"><button class="btn btn-ghost" data-action="subject-edit" data-id="${subject.id}" type="button">Update</button><button class="btn btn-ghost" data-action="subject-flag" data-id="${subject.id}" type="button">${subject.isFlagged ? "Unflag" : "Flag"}</button><button class="btn btn-danger" data-action="subject-archive" data-id="${subject.id}" type="button">Archive</button></div></div>`;
+          return `<div class="record-row"><div class="record-top"><div><div class="record-title">${escapeHtml(subject.name)}</div><div class="meta">${escapeHtml(subject.notes || "No notes")}</div></div><div class="record-tags"><span class="${makeBadgeClass("badge", subject.status)}">${escapeHtml(subject.status)}</span><span class="${scoreClass(subject.healthScore)}">Score ${escapeHtml(subject.healthScore)}</span></div></div><div class="record-meta-grid"><div><span class="field-label">Type</span><span class="field-value">${escapeHtml(subject.type)}</span></div><div><span class="field-label">Assigned email</span><span class="field-value">${escapeHtml(subject.assignedEmail)}</span></div><div><span class="field-label">Assigned phone</span><span class="field-value">${escapeHtml(subject.assignedPhone)}</span></div><div><span class="field-label">DOB</span><span class="field-value">${escapeHtml(subject.dateOfBirth || "—")}</span></div><div><span class="field-label">Credit Score</span><span class="field-value">${escapeHtml(subject.clearScore || "—")}</span></div><div><span class="field-label">Credit limit</span><span class="field-value">${escapeHtml(formatCurrency(subject.creditLimit))}</span></div><div><span class="field-label">Headroom</span><span class="field-value">${escapeHtml(formatCurrency(availableHeadroom))}</span></div><div><span class="field-label">Applications</span><span class="field-value">${escapeHtml(subject.applications.length)}</span></div></div><div class="row-actions"><button class="btn btn-ghost" data-action="subject-edit" data-id="${subject.id}" type="button">Update</button><button class="btn btn-ghost" data-action="subject-flag" data-id="${subject.id}" type="button">${subject.isFlagged ? "Unflag" : "Flag"}</button><button class="btn btn-danger" data-action="subject-archive" data-id="${subject.id}" type="button">Archive</button></div></div>`;
         })
         .join("")
     : emptyState("No subjects match the current filters.");
@@ -549,14 +549,31 @@ async function handleCreateSubject(event) {
   const form = event.currentTarget;
   const formData = new FormData(form);
   try {
-    await trpcMutation("entities.create", {
+    const payload = {
       name: String(formData.get("name") || ""),
       type: String(formData.get("type") || "Person"),
       creditLimit: Number(formData.get("creditLimit") || 0),
       assignedPhone: String(formData.get("assignedPhone") || ""),
       assignedEmail: String(formData.get("assignedEmail") || ""),
+      dateOfBirth: String(formData.get("dateOfBirth") || ""),
+      address: String(formData.get("address") || ""),
+      dlNumber: String(formData.get("dlNumber") || ""),
+      dlCardNumber: String(formData.get("dlCardNumber") || ""),
+      dlExpiry: String(formData.get("dlExpiry") || ""),
+      medicareNumber: String(formData.get("medicareNumber") || ""),
+      medicareExpiry: String(formData.get("medicareExpiry") || ""),
+      passportNumber: String(formData.get("passportNumber") || ""),
+      passportExpiry: String(formData.get("passportExpiry") || ""),
+      creditNotes: String(formData.get("creditNotes") || ""),
       notes: String(formData.get("notes") || ""),
-    });
+    };
+    
+    const clearScoreStr = formData.get("clearScore");
+    if (clearScoreStr) {
+      payload.clearScore = Number(clearScoreStr);
+    }
+
+    await trpcMutation("entities.create", payload);
     form.reset();
     await refreshAll();
     selectTab("subjects");

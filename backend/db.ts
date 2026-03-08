@@ -39,6 +39,14 @@ export const EntitySchema = z.object({
   dateOfBirth: z.string(),
   address: z.string(),
   idNumber: z.string(),
+  dlNumber: z.string().optional(),
+  dlCardNumber: z.string().optional(),
+  dlExpiry: z.string().optional(),
+  medicareNumber: z.string().optional(),
+  medicareExpiry: z.string().optional(),
+  passportNumber: z.string().optional(),
+  passportExpiry: z.string().optional(),
+  creditNotes: z.string().optional(),
   applications: z.array(CreditApplicationSchema),
 });
 
