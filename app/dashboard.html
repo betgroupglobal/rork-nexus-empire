@@ -240,15 +240,35 @@
             </article>
           </section>
 
-          <article class="workspace-card data-surface">
-            <div class="card-head">
+          <article class="workspace-card data-surface" style="padding: 0; overflow: hidden;">
+            <div class="card-head" style="padding: 20px;">
               <div>
                 <div class="card-label">Roster</div>
                 <h2>Subject records</h2>
               </div>
               <div class="card-note">High-rating rows are clearer and calmer</div>
             </div>
-            <div id="subjects-list" class="record-list"></div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Score</th>
+                    <th>Type</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>DOB</th>
+                    <th>Credit Limit</th>
+                    <th>Headroom</th>
+                    <th>Apps</th>
+                    <th>Notes</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="subjects-list"></tbody>
+              </table>
+            </div>
           </article>
         </section>
 

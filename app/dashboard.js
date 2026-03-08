@@ -366,10 +366,29 @@ function renderSubjects() {
     ? items
         .map((subject) => {
           const availableHeadroom = subject.creditLimit * (1 - subject.utilisationPercent / 100);
-          return `<div class="record-row"><div class="record-top"><div><div class="record-title">${escapeHtml(subject.name)}</div><div class="meta">${escapeHtml(subject.notes || "No notes")}</div></div><div class="record-tags"><span class="${makeBadgeClass("badge", subject.status)}">${escapeHtml(subject.status)}</span><span class="${scoreClass(subject.healthScore)}">Score ${escapeHtml(subject.healthScore)}</span></div></div><div class="record-meta-grid"><div><span class="field-label">Type</span><span class="field-value">${escapeHtml(subject.type)}</span></div><div><span class="field-label">Assigned email</span><span class="field-value">${escapeHtml(subject.assignedEmail)}</span></div><div><span class="field-label">Assigned phone</span><span class="field-value">${escapeHtml(subject.assignedPhone)}</span></div><div><span class="field-label">DOB</span><span class="field-value">${escapeHtml(subject.dateOfBirth || "—")}</span></div><div><span class="field-label">Credit Score</span><span class="field-value">${escapeHtml(subject.clearScore || "—")}</span></div><div><span class="field-label">Credit limit</span><span class="field-value">${escapeHtml(formatCurrency(subject.creditLimit))}</span></div><div><span class="field-label">Headroom</span><span class="field-value">${escapeHtml(formatCurrency(availableHeadroom))}</span></div><div><span class="field-label">Applications</span><span class="field-value">${escapeHtml(subject.applications.length)}</span></div></div><div class="row-actions"><button class="btn btn-ghost" data-action="subject-edit" data-id="${subject.id}" type="button">Update</button><button class="btn btn-ghost" data-action="subject-flag" data-id="${subject.id}" type="button">${subject.isFlagged ? "Unflag" : "Flag"}</button><button class="btn btn-danger" data-action="subject-archive" data-id="${subject.id}" type="button">Archive</button></div></div>`;
+          return `<tr>
+            <td class="font-medium">${escapeHtml(subject.name)}</td>
+            <td><span class="${makeBadgeClass("badge", subject.status)}">${escapeHtml(subject.status)}</span></td>
+            <td><span class="${scoreClass(subject.healthScore)}">${escapeHtml(subject.healthScore)}</span></td>
+            <td>${escapeHtml(subject.type)}</td>
+            <td>${escapeHtml(subject.assignedEmail)}</td>
+            <td>${escapeHtml(subject.assignedPhone)}</td>
+            <td>${escapeHtml(subject.dateOfBirth || "—")}</td>
+            <td>${escapeHtml(formatCurrency(subject.creditLimit))}</td>
+            <td>${escapeHtml(formatCurrency(availableHeadroom))}</td>
+            <td>${escapeHtml(subject.applications.length)}</td>
+            <td class="text-truncate" title="${escapeHtml(subject.notes || "")}">${escapeHtml(subject.notes || "—")}</td>
+            <td>
+              <div class="row-actions">
+                <button class="btn btn-ghost btn-sm" data-action="subject-edit" data-id="${subject.id}" type="button">Edit</button>
+                <button class="btn btn-ghost btn-sm" data-action="subject-flag" data-id="${subject.id}" type="button">${subject.isFlagged ? "Unflag" : "Flag"}</button>
+                <button class="btn btn-danger btn-sm" data-action="subject-archive" data-id="${subject.id}" type="button">Archive</button>
+              </div>
+            </td>
+          </tr>`;
         })
         .join("")
-    : emptyState("No subjects match the current filters.");
+    : `<tr><td colspan="12" class="empty-state" style="border:none; padding: 40px;">No subjects match the current filters.</td></tr>`;
 }
 
 function renderComms() {
