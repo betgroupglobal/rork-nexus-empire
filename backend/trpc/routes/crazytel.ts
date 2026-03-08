@@ -19,7 +19,7 @@ async function crazytelRequest(
     headers: {
       "Content-Type": "application/json",
       "accept": "application/json",
-      "x-crazytel-api-key": apiKey,
+      "X-Crazytel-Api-Key": apiKey,
     },
   };
 
@@ -30,8 +30,19 @@ async function crazytelRequest(
   const res = await fetch(`${CRAZYTEL_API_BASE}${path}`, options);
   
   if (!res.ok) {
-    const errorText = await res.text();
-    throw new Error(`CrazyTel Error (${res.status}): ${errorText}`);
+    let errorMessage = `CrazyTel Error (${res.status})`;
+    try {
+      const errorJson = await res.json();
+      if (errorJson?.error?.message) {
+        errorMessage = `CrazyTel Error (${res.status}): ${errorJson.error.message}`;
+      } else {
+        errorMessage = `CrazyTel Error (${res.status}): ${JSON.stringify(errorJson)}`;
+      }
+    } catch {
+      const errorText = await res.text();
+      errorMessage = `CrazyTel Error (${res.status}): ${errorText}`;
+    }
+    throw new Error(errorMessage);
   }
 
   return res.json();
