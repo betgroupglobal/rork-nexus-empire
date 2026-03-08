@@ -90,50 +90,13 @@
             <div class="summary-pill" id="subjects-summary">0 subjects</div>
           </div>
 
-          <section class="section-grid">
-            <article class="workspace-card">
-              <div class="card-head">
-                <div>
-                  <div class="card-label">Create</div>
-                  <h2>Add subject</h2>
-                </div>
-                <div class="card-note">Minimal credential capture</div>
+          <section class="section-grid" style="grid-template-columns: 1fr;">
+            <article class="workspace-card" style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div class="card-label">Refine</div>
+                <h2>Filter roster</h2>
               </div>
-              <form id="subject-create-form" class="form-grid wide-grid">
-                <input name="name" type="text" placeholder="Name" required />
-                <select name="type">
-                  <option value="Person">Person</option>
-                  <option value="Ltd">Ltd</option>
-                  <option value="Trust">Trust</option>
-                </select>
-                <input name="creditLimit" type="number" min="0" placeholder="Credit Limit" required />
-                <input name="assignedPhone" type="text" placeholder="Assigned Phone" required />
-                <input name="assignedEmail" type="email" placeholder="Assigned Email" required />
-                <input name="dateOfBirth" type="text" placeholder="Date of Birth (YYYY-MM-DD)" />
-                <input name="address" type="text" placeholder="Address" />
-                <input name="dlNumber" type="text" placeholder="D/L Number" />
-                <input name="dlCardNumber" type="text" placeholder="D/L Card Number" />
-                <input name="dlExpiry" type="text" placeholder="D/L Expiry" />
-                <input name="medicareNumber" type="text" placeholder="Medicare No." />
-                <input name="medicareExpiry" type="text" placeholder="Medicare Exp." />
-                <input name="passportNumber" type="text" placeholder="Passport Number" />
-                <input name="passportExpiry" type="text" placeholder="Passport Exp." />
-                <input name="clearScore" type="number" placeholder="Credit Score" />
-                <input name="creditNotes" type="text" placeholder="Credit Notes" />
-                <input name="notes" type="text" placeholder="General Notes" />
-                <button class="btn btn-primary" type="submit">Create subject</button>
-              </form>
-            </article>
-
-            <article class="workspace-card">
-              <div class="card-head">
-                <div>
-                  <div class="card-label">Refine</div>
-                  <h2>Filter roster</h2>
-                </div>
-                <div class="card-note">Search by name, email, phone or status</div>
-              </div>
-              <div class="form-grid compact-grid">
+              <div class="form-grid compact-grid" style="flex: 1; max-width: 600px; margin: 0 20px;">
                 <input id="subjects-search" type="text" placeholder="Search subject" />
                 <select id="subjects-status">
                   <option value="">Any status</option>
@@ -143,8 +106,9 @@
                   <option value="At Risk">At Risk</option>
                   <option value="Archived">Archived</option>
                 </select>
-                <button class="btn btn-ghost" id="subjects-filter-apply" type="button">Apply filters</button>
+                <button class="btn btn-ghost" id="subjects-filter-apply" type="button">Apply</button>
               </div>
+              <button class="btn btn-primary" id="btn-open-subject-modal" type="button">+ Add subject</button>
             </article>
           </section>
 
@@ -190,40 +154,13 @@
             <div class="summary-pill" id="comms-summary">0 items</div>
           </div>
 
-          <section class="section-grid">
-            <article class="workspace-card">
-              <div class="card-head">
-                <div>
-                  <div class="card-label">Capture</div>
-                  <h2>Log communication</h2>
-                </div>
-                <div class="card-note">SMS, calls and voicemail</div>
+          <section class="section-grid" style="grid-template-columns: 1fr;">
+            <article class="workspace-card" style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div class="card-label">Refine</div>
+                <h2>Filter queue</h2>
               </div>
-              <form id="comm-create-form" class="form-grid wide-grid">
-                <select name="subjectId" id="comm-subject"></select>
-                <select name="type">
-                  <option value="SMS">SMS</option>
-                  <option value="Call">Call</option>
-                  <option value="Voicemail">Voicemail</option>
-                </select>
-                <input name="sender" type="text" placeholder="Sender" required />
-                <input name="phoneNumber" type="text" placeholder="Phone Number" required />
-                <input name="content" type="text" placeholder="Content" required />
-                <input name="duration" type="number" min="0" placeholder="Duration seconds" />
-                <input name="transcription" type="text" placeholder="Transcription" />
-                <button class="btn btn-primary" type="submit">Create communication</button>
-              </form>
-            </article>
-
-            <article class="workspace-card">
-              <div class="card-head">
-                <div>
-                  <div class="card-label">Refine</div>
-                  <h2>Filter queue</h2>
-                </div>
-                <div class="card-note">Scope by subject or type</div>
-              </div>
-              <div class="form-grid compact-grid">
+              <div class="form-grid compact-grid" style="flex: 1; max-width: 600px; margin: 0 20px;">
                 <select id="comms-filter-subject"></select>
                 <select id="comms-filter-type">
                   <option value="">Any type</option>
@@ -231,8 +168,9 @@
                   <option value="Call">Call</option>
                   <option value="Voicemail">Voicemail</option>
                 </select>
-                <button class="btn btn-ghost" id="comms-filter-apply" type="button">Apply filters</button>
+                <button class="btn btn-ghost" id="comms-filter-apply" type="button">Apply</button>
               </div>
+              <button class="btn btn-primary" id="btn-open-comm-modal" type="button">+ Log comm</button>
             </article>
           </section>
 
@@ -374,6 +312,69 @@
         </section>
       </main>
     </div>
+
+    <!-- Modals -->
+    <dialog id="subject-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Add subject</h2>
+          <button class="btn-icon" id="btn-close-subject-modal">&times;</button>
+        </div>
+        <form id="subject-create-form" class="form-grid wide-grid">
+          <input name="name" type="text" placeholder="Name" required />
+          <select name="type">
+            <option value="Person">Person</option>
+            <option value="Ltd">Ltd</option>
+            <option value="Trust">Trust</option>
+          </select>
+          <input name="creditLimit" type="number" min="0" placeholder="Credit Limit" required />
+          <input name="assignedPhone" type="text" placeholder="Assigned Phone" required />
+          <input name="assignedEmail" type="email" placeholder="Assigned Email" required />
+          <input name="dateOfBirth" type="text" placeholder="Date of Birth (YYYY-MM-DD)" />
+          <input name="address" type="text" placeholder="Address" />
+          <input name="dlNumber" type="text" placeholder="D/L Number" />
+          <input name="dlCardNumber" type="text" placeholder="D/L Card Number" />
+          <input name="dlExpiry" type="text" placeholder="D/L Expiry" />
+          <input name="medicareNumber" type="text" placeholder="Medicare No." />
+          <input name="medicareExpiry" type="text" placeholder="Medicare Exp." />
+          <input name="passportNumber" type="text" placeholder="Passport Number" />
+          <input name="passportExpiry" type="text" placeholder="Passport Exp." />
+          <input name="clearScore" type="number" placeholder="Credit Score" />
+          <input name="creditNotes" type="text" placeholder="Credit Notes" />
+          <input name="notes" type="text" placeholder="General Notes" />
+          <div class="modal-actions" style="grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+            <button class="btn btn-ghost" type="button" id="btn-cancel-subject">Cancel</button>
+            <button class="btn btn-primary" type="submit">Create subject</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
+
+    <dialog id="comm-modal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Log communication</h2>
+          <button class="btn-icon" id="btn-close-comm-modal">&times;</button>
+        </div>
+        <form id="comm-create-form" class="form-grid wide-grid">
+          <select name="subjectId" id="comm-subject"></select>
+          <select name="type">
+            <option value="SMS">SMS</option>
+            <option value="Call">Call</option>
+            <option value="Voicemail">Voicemail</option>
+          </select>
+          <input name="sender" type="text" placeholder="Sender" required />
+          <input name="phoneNumber" type="text" placeholder="Phone Number" required />
+          <input name="content" type="text" placeholder="Content" required />
+          <input name="duration" type="number" min="0" placeholder="Duration seconds" />
+          <input name="transcription" type="text" placeholder="Transcription" />
+          <div class="modal-actions" style="grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+            <button class="btn btn-ghost" type="button" id="btn-cancel-comm">Cancel</button>
+            <button class="btn btn-primary" type="submit">Log communication</button>
+          </div>
+        </form>
+      </div>
+    </dialog>
 
     <script type="module" src="/ui/app.js"></script>
   </body>

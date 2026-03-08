@@ -598,7 +598,8 @@ async function handleCreateSubject(event) {
     setTimeout(() => {
       submitBtn.textContent = originalText;
       submitBtn.classList.remove("btn-success");
-    }, 2000);
+      document.getElementById("subject-modal")?.close();
+    }, 1000);
     
     await refreshAll();
   } catch (error) {
@@ -667,7 +668,8 @@ async function handleCreateComm(event) {
     setTimeout(() => {
       submitBtn.textContent = originalText;
       submitBtn.classList.remove("btn-success");
-    }, 2000);
+      document.getElementById("comm-modal")?.close();
+    }, 1000);
 
     await refreshAll();
   } catch (error) {
@@ -803,6 +805,45 @@ function attachEventHandlers() {
   });
 
   document.body.addEventListener("click", handleRootClick);
+
+  // Modal handlers
+  const subjectModal = document.getElementById("subject-modal");
+  const commModal = document.getElementById("comm-modal");
+
+  document.getElementById("btn-open-subject-modal")?.addEventListener("click", () => {
+    subjectModal.showModal();
+  });
+  document.getElementById("btn-close-subject-modal")?.addEventListener("click", () => {
+    subjectModal.close();
+  });
+  document.getElementById("btn-cancel-subject")?.addEventListener("click", () => {
+    subjectModal.close();
+  });
+
+  document.getElementById("btn-open-comm-modal")?.addEventListener("click", () => {
+    commModal.showModal();
+  });
+  document.getElementById("btn-close-comm-modal")?.addEventListener("click", () => {
+    commModal.close();
+  });
+  document.getElementById("btn-cancel-comm")?.addEventListener("click", () => {
+    commModal.close();
+  });
+
+  // Close modals when clicking outside
+  [subjectModal, commModal].forEach(modal => {
+    modal?.addEventListener("click", (e) => {
+      const dialogDimensions = modal.getBoundingClientRect()
+      if (
+        e.clientX < dialogDimensions.left ||
+        e.clientX > dialogDimensions.right ||
+        e.clientY < dialogDimensions.top ||
+        e.clientY > dialogDimensions.bottom
+      ) {
+        modal.close();
+      }
+    });
+  });
 }
 
 async function boot() {
