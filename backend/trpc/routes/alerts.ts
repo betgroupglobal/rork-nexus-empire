@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../create-context";
-import { db, AlertTypeEnum } from "../../db";
+import { AlertTypeEnum } from "../../db";
+import prisma from "../../prisma";
 
 export const alertsRouter = createTRPCRouter({
   list: publicProcedure
@@ -9,27 +10,28 @@ export const alertsRouter = createTRPCRouter({
         type: AlertTypeEnum.optional(),
       }).optional()
     )
-    .query(({ input }) => {
-      let alerts = db.alerts;
-      if (input?.type) {
-        alerts = alerts.filter((a) => a.type === input.type);
-      }
-      return alerts.sort(
-        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
+    .query(async ({ input }) => {
+      return prisma.nexusAlert.findMany({
+        where: input?.type ? { type: input.type } : undefined,
+        orderBy: { timestamp: "desc" },
+      });
     }),
 
   markRead: publicProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .mutation(({ input }) => {
-      const idx = db.alerts.findIndex((a) => a.id === input.id);
-      if (idx === -1) throw new Error("Alert not found");
-      db.alerts[idx]!.isRead = true;
-      return db.alerts[idx]!;
+    .mutation(async ({ input }) => {
+      const alert = await prisma.nexusAlert.update({
+        where: { id: input.id },
+        data: { isRead: true },
+      });
+      return alert;
     }),
 
-  markAllRead: publicProcedure.mutation(() => {
-    db.alerts.forEach((a) => (a.isRead = true));
+  markAllRead: publicProcedure.mutation(async () => {
+    await prisma.nexusAlert.updateMany({
+      where: { isRead: false },
+      data: { isRead: true },
+    });
     return { success: true };
   }),
 });

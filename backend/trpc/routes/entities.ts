@@ -1,16 +1,22 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../create-context";
-import { db, EntityTypeEnum, EntityStatusEnum } from "../../db";
+import { EntityTypeEnum, EntityStatusEnum } from "../../db";
+import prisma from "../../prisma";
 
 export const entitiesRouter = createTRPCRouter({
-  list: publicProcedure.query(() => {
-    return db.entities;
+  list: publicProcedure.query(async () => {
+    return prisma.entity.findMany({
+      include: { applications: true },
+    });
   }),
 
   getById: publicProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .query(({ input }) => {
-      const entity = db.entities.find((e) => e.id === input.id);
+    .query(async ({ input }) => {
+      const entity = await prisma.entity.findUnique({
+        where: { id: input.id },
+        include: { applications: true },
+      });
       if (!entity) throw new Error("Entity not found");
       return entity;
     }),
@@ -38,37 +44,36 @@ export const entitiesRouter = createTRPCRouter({
         creditNotes: z.string().optional(),
       })
     )
-    .mutation(({ input }) => {
-      const entity = {
-        id: crypto.randomUUID(),
-        name: input.name,
-        type: input.type,
-        status: "Active" as const,
-        healthScore: 75,
-        creditLimit: input.creditLimit,
-        utilisationPercent: 0,
-        monthlyBurn: 25,
-        assignedPhone: input.assignedPhone,
-        assignedEmail: input.assignedEmail,
-        clearScore: input.clearScore ?? 750,
-        lastActivityDate: new Date().toISOString(),
-        isFlagged: false,
-        notes: input.notes ?? "",
-        createdDate: new Date().toISOString(),
-        dateOfBirth: input.dateOfBirth ?? "",
-        address: input.address ?? "",
-        idNumber: input.idNumber ?? "",
-        dlNumber: input.dlNumber,
-        dlCardNumber: input.dlCardNumber,
-        dlExpiry: input.dlExpiry,
-        medicareNumber: input.medicareNumber,
-        medicareExpiry: input.medicareExpiry,
-        passportNumber: input.passportNumber,
-        passportExpiry: input.passportExpiry,
-        creditNotes: input.creditNotes,
-        applications: [],
-      };
-      db.entities.push(entity);
+    .mutation(async ({ input }) => {
+      const entity = await prisma.entity.create({
+        data: {
+          name: input.name,
+          type: input.type,
+          status: "Active",
+          healthScore: 75,
+          creditLimit: input.creditLimit,
+          utilisationPercent: 0,
+          monthlyBurn: 25,
+          assignedPhone: input.assignedPhone,
+          assignedEmail: input.assignedEmail,
+          clearScore: input.clearScore ?? 750,
+          lastActivityDate: new Date(),
+          isFlagged: false,
+          notes: input.notes ?? "",
+          dateOfBirth: input.dateOfBirth ?? "",
+          address: input.address ?? "",
+          idNumber: input.idNumber ?? "",
+          dlNumber: input.dlNumber,
+          dlCardNumber: input.dlCardNumber,
+          dlExpiry: input.dlExpiry,
+          medicareNumber: input.medicareNumber,
+          medicareExpiry: input.medicareExpiry,
+          passportNumber: input.passportNumber,
+          passportExpiry: input.passportExpiry,
+          creditNotes: input.creditNotes,
+        },
+        include: { applications: true },
+      });
       return entity;
     }),
 
@@ -101,49 +106,65 @@ export const entitiesRouter = createTRPCRouter({
         creditNotes: z.string().optional(),
       })
     )
-    .mutation(({ input }) => {
-      const idx = db.entities.findIndex((e) => e.id === input.id);
-      if (idx === -1) throw new Error("Entity not found");
+    .mutation(async ({ input }) => {
       const { id, ...updates } = input;
       const filtered = Object.fromEntries(
         Object.entries(updates).filter(([_, v]) => v !== undefined)
       );
-      db.entities[idx] = { ...db.entities[idx]!, ...filtered, lastActivityDate: new Date().toISOString() };
-      return db.entities[idx]!;
+      
+      const entity = await prisma.entity.update({
+        where: { id },
+        data: { ...filtered, lastActivityDate: new Date() },
+        include: { applications: true },
+      });
+      return entity;
     }),
 
   archive: publicProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .mutation(({ input }) => {
-      const idx = db.entities.findIndex((e) => e.id === input.id);
-      if (idx === -1) throw new Error("Entity not found");
-      db.entities[idx]!.status = "Archived";
-      return db.entities[idx]!;
+    .mutation(async ({ input }) => {
+      const entity = await prisma.entity.update({
+        where: { id: input.id },
+        data: { status: "Archived" },
+        include: { applications: true },
+      });
+      return entity;
     }),
 
   toggleFlag: publicProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .mutation(({ input }) => {
-      const idx = db.entities.findIndex((e) => e.id === input.id);
-      if (idx === -1) throw new Error("Entity not found");
-      db.entities[idx]!.isFlagged = !db.entities[idx]!.isFlagged;
-      return db.entities[idx]!;
+    .mutation(async ({ input }) => {
+      const current = await prisma.entity.findUnique({ where: { id: input.id } });
+      if (!current) throw new Error("Entity not found");
+      
+      const entity = await prisma.entity.update({
+        where: { id: input.id },
+        data: { isFlagged: !current.isFlagged },
+        include: { applications: true },
+      });
+      return entity;
     }),
 
-  dashboard: publicProcedure.query(() => {
-    const active = db.entities.filter((e) => e.status !== "Archived");
+  dashboard: publicProcedure.query(async () => {
+    const activeEntities = await prisma.entity.findMany({
+      where: { status: { not: "Archived" } },
+      include: { applications: true },
+    });
+    const allEntitiesCount = await prisma.entity.count();
+    
     const activeStatuses = new Set(["Submitted", "In Review", "Docs Needed", "Stalled"]);
 
-    const totalFirepower = active.reduce(
+    const totalFirepower = activeEntities.reduce(
       (sum, e) => sum + e.creditLimit * (1 - e.utilisationPercent / 100),
       0
     );
-    const monthlyBurn = active.reduce((sum, e) => sum + e.monthlyBurn, 0);
-    const urgentAlerts = db.alerts.filter(
-      (a) => !a.isRead && a.priority === "Critical"
-    );
+    const monthlyBurn = activeEntities.reduce((sum, e) => sum + e.monthlyBurn, 0);
+    
+    const urgentAlertsCount = await prisma.nexusAlert.count({
+      where: { isRead: false, priority: "Critical" }
+    });
 
-    const applicationRows = active.flatMap((subject) =>
+    const applicationRows = activeEntities.flatMap((subject) =>
       subject.applications.map((application) => ({ subject, application }))
     );
     const currentApplicationsTotal = applicationRows.filter(({ application }) =>
@@ -158,21 +179,24 @@ export const entitiesRouter = createTRPCRouter({
           new Date(b.application.submittedDate).getTime()
       )[0];
 
+    const unreadComms = await prisma.communication.count({ where: { isRead: false } });
+    const unreadEmails = await prisma.email.count({ where: { isRead: false } });
+
     return {
       totalFirepower,
       monthlyBurn,
-      activeCount: active.filter((e) => e.status === "Active").length,
-      totalCount: db.entities.length,
-      urgentCount: urgentAlerts.length,
-      unreadComms: db.communications.filter((c) => !c.isRead).length,
-      unreadEmails: db.emails.filter((e) => !e.isRead).length,
+      activeCount: activeEntities.filter((e) => e.status === "Active").length,
+      totalCount: allEntitiesCount,
+      urgentCount: urgentAlertsCount,
+      unreadComms,
+      unreadEmails,
       currentApplicationsTotal,
       longestActive: longestActive
         ? {
             subjectId: longestActive.subject.id,
             subjectName: longestActive.subject.name,
             bank: longestActive.application.bank,
-            submittedDate: longestActive.application.submittedDate,
+            submittedDate: longestActive.application.submittedDate.toISOString(),
           }
         : null,
     };

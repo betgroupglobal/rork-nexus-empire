@@ -1,23 +1,11 @@
 import { z } from "zod";
 import { publicProcedure, createTRPCRouter } from "../create-context";
 import { TRPCError } from "@trpc/server";
-import { db } from "../../db";
+import prisma from "../../prisma";
 
 const JWT_SECRET = process.env.JWT_SECRET || "nexus-secret-key-change-in-production";
 const TOKEN_EXPIRY_HOURS = 72;
 const PBKDF2_ITERATIONS = 100000;
-
-interface StoredUser {
-  id: string;
-  email: string;
-  passwordHash: string;
-  name: string;
-  createdAt: string;
-}
-
-function generateId(): string {
-  return crypto.randomUUID();
-}
 
 function arrayBufferToHex(buffer: ArrayBuffer): string {
   return Array.from(new Uint8Array(buffer))
@@ -142,10 +130,6 @@ export async function verifyJWT(token: string): Promise<{ userId: string; email:
   }
 }
 
-export function getUserFromStore(userId: string): StoredUser | undefined {
-  return db.users.find((u) => u.id === userId);
-}
-
 export const authRouter = createTRPCRouter({
   register: publicProcedure
     .input(
@@ -156,19 +140,20 @@ export const authRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ input }) => {
-      const existing = db.users.find((u) => u.email === input.email.toLowerCase());
+      const existing = await prisma.user.findUnique({
+        where: { email: input.email.toLowerCase() },
+      });
       if (existing) {
         throw new TRPCError({ code: "CONFLICT", message: "Email already registered" });
       }
       const passwordHash = await hashPassword(input.password);
-      const user: StoredUser = {
-        id: generateId(),
-        email: input.email.toLowerCase(),
-        passwordHash,
-        name: input.name,
-        createdAt: new Date().toISOString(),
-      };
-      db.users.push(user);
+      const user = await prisma.user.create({
+        data: {
+          email: input.email.toLowerCase(),
+          passwordHash,
+          name: input.name,
+        }
+      });
       const token = await createJWT({ userId: user.id, email: user.email });
       return { token, user: { id: user.id, email: user.email, name: user.name } };
     }),
@@ -181,7 +166,9 @@ export const authRouter = createTRPCRouter({
       })
     )
     .mutation(async ({ input }) => {
-      const user = db.users.find((u) => u.email === input.email.toLowerCase());
+      const user = await prisma.user.findUnique({
+        where: { email: input.email.toLowerCase() }
+      });
       if (!user) {
         throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid email or password" });
       }
@@ -202,7 +189,9 @@ export const authRouter = createTRPCRouter({
     if (!payload) {
       throw new TRPCError({ code: "UNAUTHORIZED", message: "Invalid or expired token" });
     }
-    const user = getUserFromStore(payload.userId);
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId }
+    });
     if (!user) {
       throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
     }

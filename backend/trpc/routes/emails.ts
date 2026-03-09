@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../create-context";
-import { db, EmailCategoryEnum } from "../../db";
+import { EmailCategoryEnum } from "../../db";
+import prisma from "../../prisma";
 
 export const emailsRouter = createTRPCRouter({
   list: publicProcedure
@@ -11,36 +12,35 @@ export const emailsRouter = createTRPCRouter({
         category: EmailCategoryEnum.optional(),
       }).optional()
     )
-    .query(({ input }) => {
-      let emails = db.emails;
+    .query(async ({ input }) => {
       const scopedId = input?.subjectId ?? input?.entityId;
-      if (scopedId) {
-        emails = emails.filter((e) => e.entityId === scopedId);
-      }
-      if (input?.category) {
-        emails = emails.filter((e) => e.category === input.category);
-      }
-      return emails.sort(
-        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
+      return prisma.email.findMany({
+        where: {
+          ...(scopedId ? { entityId: scopedId } : {}),
+          ...(input?.category ? { category: input.category } : {}),
+        },
+        orderBy: { timestamp: "desc" },
+      });
     }),
 
   markRead: publicProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .mutation(({ input }) => {
-      const idx = db.emails.findIndex((e) => e.id === input.id);
-      if (idx === -1) throw new Error("Email not found");
-      db.emails[idx]!.isRead = true;
-      return db.emails[idx]!;
+    .mutation(async ({ input }) => {
+      return prisma.email.update({
+        where: { id: input.id },
+        data: { isRead: true },
+      });
     }),
 
   toggleFlag: publicProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .mutation(({ input }) => {
-      const idx = db.emails.findIndex((e) => e.id === input.id);
-      if (idx === -1) throw new Error("Email not found");
-      db.emails[idx]!.isFlagged = !db.emails[idx]!.isFlagged;
-      return db.emails[idx]!;
+    .mutation(async ({ input }) => {
+      const current = await prisma.email.findUnique({ where: { id: input.id } });
+      if (!current) throw new Error("Email not found");
+      return prisma.email.update({
+        where: { id: input.id },
+        data: { isFlagged: !current.isFlagged },
+      });
     }),
 
   send: publicProcedure
@@ -52,28 +52,26 @@ export const emailsRouter = createTRPCRouter({
         to: z.string(),
       })
     )
-    .mutation(({ input }) => {
-      const entity = db.entities.find((e) => e.id === input.entityId);
+    .mutation(async ({ input }) => {
+      const entity = await prisma.entity.findUnique({ where: { id: input.entityId } });
       if (!entity) throw new Error("Entity not found");
 
-      const newEmail = {
-        id: crypto.randomUUID(),
-        entityId: entity.id,
-        entityName: entity.name,
-        sender: "Nexus System",
-        senderAddress: "system@nexus.local",
-        subject: input.subject,
-        snippet: input.content.substring(0, 100),
-        category: "General" as const,
-        timestamp: new Date().toISOString(),
-        isRead: true,
-        isFlagged: false,
-        containsDollarAmount: input.content.includes("$"),
-        alias: input.to,
-      };
-
-      db.emails.unshift(newEmail);
-      return newEmail;
+      return prisma.email.create({
+        data: {
+          entityId: entity.id,
+          entityName: entity.name,
+          sender: "Nexus System",
+          senderAddress: "system@nexus.local",
+          subject: input.subject,
+          snippet: input.content.substring(0, 100),
+          category: "General",
+          timestamp: new Date(),
+          isRead: true,
+          isFlagged: false,
+          containsDollarAmount: input.content.includes("$"),
+          alias: input.to,
+        }
+      });
     }),
 
   syncMailbox: publicProcedure

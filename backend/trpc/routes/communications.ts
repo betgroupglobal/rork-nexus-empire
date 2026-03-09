@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "../create-context";
-import { db, CommTypeEnum } from "../../db";
+import { CommTypeEnum } from "../../db";
+import prisma from "../../prisma";
 
 export const communicationsRouter = createTRPCRouter({
   list: publicProcedure
@@ -11,27 +12,24 @@ export const communicationsRouter = createTRPCRouter({
         type: CommTypeEnum.optional(),
       }).optional()
     )
-    .query(({ input }) => {
-      let comms = db.communications;
+    .query(async ({ input }) => {
       const scopedId = input?.subjectId ?? input?.entityId;
-      if (scopedId) {
-        comms = comms.filter((c) => c.entityId === scopedId);
-      }
-      if (input?.type) {
-        comms = comms.filter((c) => c.type === input.type);
-      }
-      return comms.sort(
-        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
+      return prisma.communication.findMany({
+        where: {
+          ...(scopedId ? { entityId: scopedId } : {}),
+          ...(input?.type ? { type: input.type } : {}),
+        },
+        orderBy: { timestamp: "desc" },
+      });
     }),
 
   markRead: publicProcedure
     .input(z.object({ id: z.string().uuid() }))
-    .mutation(({ input }) => {
-      const idx = db.communications.findIndex((c) => c.id === input.id);
-      if (idx === -1) throw new Error("Communication not found");
-      db.communications[idx]!.isRead = true;
-      return db.communications[idx]!;
+    .mutation(async ({ input }) => {
+      return prisma.communication.update({
+        where: { id: input.id },
+        data: { isRead: true },
+      });
     }),
 
   create: publicProcedure
@@ -49,27 +47,26 @@ export const communicationsRouter = createTRPCRouter({
         transcription: z.string().nullable().optional(),
       })
     )
-    .mutation(({ input }) => {
+    .mutation(async ({ input }) => {
       const linkedId = input.subjectId ?? input.entityId;
       const linkedName = input.subjectName ?? input.entityName;
       if (!linkedId || !linkedName) {
         throw new Error("subjectId/entityId and subjectName/entityName are required");
       }
 
-      const comm = {
-        id: crypto.randomUUID(),
-        entityId: linkedId,
-        entityName: linkedName,
-        type: input.type,
-        sender: input.sender,
-        content: input.content,
-        phoneNumber: input.phoneNumber,
-        timestamp: new Date().toISOString(),
-        isRead: false,
-        duration: input.duration ?? null,
-        transcription: input.transcription ?? null,
-      };
-      db.communications.push(comm);
-      return comm;
+      return prisma.communication.create({
+        data: {
+          entityId: linkedId,
+          entityName: linkedName,
+          type: input.type,
+          sender: input.sender,
+          content: input.content,
+          phoneNumber: input.phoneNumber,
+          timestamp: new Date(),
+          isRead: false,
+          duration: input.duration ?? null,
+          transcription: input.transcription ?? null,
+        }
+      });
     }),
 });

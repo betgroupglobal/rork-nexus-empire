@@ -1,0 +1,109 @@
+generator client {
+  provider        = "prisma-client-js"
+  engineType      = "library"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+}
+
+model Entity {
+  id                 String             @id @default(uuid())
+  name               String
+  type               String
+  status             String
+  healthScore        Int
+  creditLimit        Float
+  utilisationPercent Float
+  monthlyBurn        Float
+  assignedPhone      String
+  assignedEmail      String
+  clearScore         Int
+  lastActivityDate   DateTime
+  isFlagged          Boolean            @default(false)
+  notes              String
+  createdDate        DateTime           @default(now())
+  dateOfBirth        String?
+  address            String?
+  idNumber           String?
+  dlNumber           String?
+  dlCardNumber       String?
+  dlExpiry           String?
+  medicareNumber     String?
+  medicareExpiry     String?
+  passportNumber     String?
+  passportExpiry     String?
+  creditNotes        String?
+  applications       CreditApplication[]
+  communications     Communication[]
+  emails             Email[]
+  alerts             NexusAlert[]
+}
+
+model CreditApplication {
+  id              String   @id @default(uuid())
+  entityId        String
+  bank            String
+  product         String
+  status          String
+  progressPercent Int
+  submittedDate   DateTime
+  lastUpdateDate  DateTime
+  nextAction      String
+  documents       String
+  entity          Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
+}
+
+model Communication {
+  id            String   @id @default(uuid())
+  entityId      String
+  entityName    String
+  type          String
+  sender        String
+  content       String
+  timestamp     DateTime
+  isRead        Boolean  @default(false)
+  phoneNumber   String
+  duration      Int?
+  transcription String?
+  entity        Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
+}
+
+model Email {
+  id                   String   @id @default(uuid())
+  entityId             String
+  entityName           String
+  sender               String
+  senderAddress        String
+  subject              String
+  snippet              String
+  category             String
+  timestamp            DateTime
+  isRead               Boolean  @default(false)
+  isFlagged            Boolean  @default(false)
+  containsDollarAmount Boolean  @default(false)
+  alias                String
+  entity               Entity   @relation(fields: [entityId], references: [id], onDelete: Cascade)
+}
+
+model NexusAlert {
+  id         String   @id @default(uuid())
+  entityId   String?
+  entityName String?
+  type       String
+  priority   String
+  title      String
+  message    String
+  timestamp  DateTime
+  isRead     Boolean  @default(false)
+  entity     Entity?  @relation(fields: [entityId], references: [id], onDelete: Cascade)
+}

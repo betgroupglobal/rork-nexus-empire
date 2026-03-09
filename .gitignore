@@ -38,3 +38,4 @@ dist/
 core
 node_modules
 .expo
+/app/generated/prisma
